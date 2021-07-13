@@ -1,7 +1,7 @@
 ---
 title: "Kafka参数"
 date: 2021-07-13T09:12:20+08:00
-draft: true
+draft: false
 tags: ["kafka"]
 categories: ["kafka"]
 ---
@@ -96,10 +96,10 @@ Topic 预留多大的磁盘空间，-1为无限
 
 ```bash
 # 创建 Topic 时进行设置
-bin/kafka-topics.sh --bootstrap-serverlocalhost:9092 --create--topictransaction --partitions1 --replication-factor1 --configretention.ms=15552000000 --configmax.message.bytes=5242880
+bin/kafka-topics.sh --bootstrap-server localhost:9092 --create--topic transaction --partitions 1 --replication-factor 1 --configretention.ms=15552000000 --configmax.message.bytes=5242880
 
 # 修改 Topic 时设置
-bin/kafka-configs.sh --zookeeperlocalhost:2181 --entity-typetopics --entity-nametransaction --alter--add-configmax.message.bytes=10485760
+bin/kafka-configs.sh --zookeeper localhost:2181 --entity-typetopics --entity-nametransaction --alter--add-configmax.message.bytes=10485760
 
 ```
 
