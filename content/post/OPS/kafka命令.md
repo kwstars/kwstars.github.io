@@ -24,6 +24,9 @@ kafka-topics --alter --topic my_topic_name --partitions 40 --bootstrap-server lo
 
 # 添加配置
 kafka-configs --alter --entity-type topics --entity-name my_topic_name --add-config x=y  --bootstrap-server localhost:9092
+
+# 移除配置
+kafka-configs --alter --entity-type topics --entity-name my_topic_name --deleteConfig x  --bootstrap-server localhost:9092
 ```
 
 
