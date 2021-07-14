@@ -1,7 +1,7 @@
 ---
 title: "Kafka命令"
 date: 2021-07-13T09:41:26+08:00
-draft: true
+draft: false
 tags: ["kafka"]
 categories: ["kafka"]
 ---
