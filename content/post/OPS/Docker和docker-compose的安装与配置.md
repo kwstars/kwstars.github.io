@@ -77,7 +77,7 @@ sudo systemctl restart docker
 
 
 
-iptables设置为false, Docker的FORWARD不生成转发规则
+iptables设置为false, Docker的FORWARD不生成转发规则, **docker容器不能访问外网**
 
 ```bash
 $ sudo iptables -nvL
