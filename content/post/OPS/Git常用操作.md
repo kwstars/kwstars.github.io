@@ -56,3 +56,24 @@ git diff BRANCH origin/main
 [fork forced sync](https://gist.github.com/glennblock/1974465)
 
 [Syncing a Fork of a GitHub Repository with Upstream](https://ardalis.com/syncing-a-fork-of-a-github-repository-with-upstream/)
+
+
+
+### 推送本地的test分支到master
+
+```bash
+git push origin test:master
+```
+
+
+
+### 暂存
+
+```bash
+git stash
+
+git stash list 
+
+git stath pop
+```
+
