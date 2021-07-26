@@ -56,3 +56,47 @@ git diff BRANCH origin/main
 [fork forced sync](https://gist.github.com/glennblock/1974465)
 
 [Syncing a Fork of a GitHub Repository with Upstream](https://ardalis.com/syncing-a-fork-of-a-github-repository-with-upstream/)
+
+
+
+### 推送本地的test分支到master
+
+```bash
+git push origin test:master
+```
+
+
+
+### 暂存
+
+```bash
+git stash
+
+git stash list 
+
+git stath pop
+```
+
+
+
+### 删除某个历史记录
+
+```bash
+# 找到删除commit的上一条COMMIT_ID
+git rebase -i COMMIT_ID
+
+# 将要删除的pick改为drop
+```
+
+
+
+### 单独删除某个文件的所有历史记录
+
+```bash
+git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch src/main/resources/config/application-test.yml' --prune-empty --tag-name-filter cat -- --all
+
+git push origin --force --all
+
+git push origin --force --tags
+```
+
