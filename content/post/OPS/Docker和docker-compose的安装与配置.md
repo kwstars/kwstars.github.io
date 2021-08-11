@@ -189,7 +189,39 @@ docker rm $(docker ps -a -q)
 ```
 
 
+
+五、Docker和iptables
+
+所有Docker的iptables规则都被添加到`DOCKER`链中。不要手动操作此表。如果你需要在Docker的规则之前添加规则，请将它们添加到`DOCKER-USER`链中。这些规则会在Docker自动创建的任何规则之前加载。
+
+```bash
+# ubuntu安装包并开启启动
+$ sudo apt install iptables-persistent -y
+$ sudo systemctl enable netfilter-persistent
+$ sudo netfilter-persistent -h
+Usage: /usr/sbin/netfilter-persistent (start|stop|restart|reload|flush|save)
+
+# 只允许192.168.1.1访问
+$ iptables -I DOCKER-USER -i eth0 ! -s 192.168.1.1 -j DROP
+
+# 只允许192.168.1.0/24网段访问
+$ iptables -I DOCKER-USER -i eth0 ! -s 192.168.1.0/24 -j DROP
+
+# 允许192.168.1.1-192.168.1.3区间访问
+$ iptables -I DOCKER-USER -m iprange -i eth0 ! --src-range 192.168.1.1-192.168.1.3 -j DROP
+```
+
+
+
+要完全防止 Docker 操纵 iptables 策略，请将 /etc/docker/daemon.json 中的 iptables 键设置为 false。这对大多数用户来说是不合适的，因为 iptables 策略需要手动管理。
+
+
+
 ---
 [How To Run Docker As Non-root User In Linux](https://ostechnix.com/how-to-run-docker-as-non-root-user-in-linux/)
 
 [Configure Docker to use a proxy server](https://docs.docker.com/network/proxy/)
+
+[Docker and iptables](https://docker-docs.netlify.app/network/iptables/)
+
+[Saving Iptables Firewall Rules Permanently](https://www.thomas-krenn.com/en/wiki/Saving_Iptables_Firewall_Rules_Permanently)
