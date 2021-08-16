@@ -209,6 +209,9 @@ $ iptables -I DOCKER-USER -i eth0 ! -s 192.168.1.0/24 -j DROP
 
 # 允许192.168.1.1-192.168.1.3区间访问
 $ iptables -I DOCKER-USER -m iprange -i eth0 ! --src-range 192.168.1.1-192.168.1.3 -j DROP
+
+# 关联主动请求的地址
+$ iptables -I DOCKER-USER -i eth0 -m state --state ESTABLISHED,RELATED -j ACCEPT
 ```
 
 
