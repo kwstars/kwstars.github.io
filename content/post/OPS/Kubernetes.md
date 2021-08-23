@@ -39,13 +39,13 @@ sudo sysctl --system
 安装
 
 ```bash
-sudo apt-get update
+sudo apt-get update -y
 sudo apt-get install \
     apt-transport-https \
     ca-certificates \
     curl \
     gnupg \
-    lsb-release
+    lsb-release -y 
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 echo \
   "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
@@ -150,7 +150,7 @@ sudo systemctl enable kubelet
 安装ControlPlaneEndpoint
 
 ```bash
-sudo kubeadm init --kubernetes-version=v1.22.0 --pod-network-cidr=10.244.0.0/16 --service-cidr=10.96.0.0/12 --ignore-preflight-errors=Swap --control-plane-endpoint=k8s.linux88.com
+sudo kubeadm init --kubernetes-version=v1.22.0 --pod-network-cidr=192.168.0.0/16 --service-cidr=10.96.0.0/12 --ignore-preflight-errors=Swap --control-plane-endpoint=k8s.linux88.com
 [addons] Applied essential addon: CoreDNS
 [addons] Applied essential addon: kube-proxy
 
@@ -235,6 +235,43 @@ kube-system   kube-scheduler-mi                          1/1     Running   0    
 
 
 
+
+```bash
+root@k1:~# calicoctl node status
+Calico process is running.
+
+IPv4 BGP status
++--------------+-------------------+-------+----------+-------------+
+| PEER ADDRESS |     PEER TYPE     | STATE |  SINCE   |    INFO     |
++--------------+-------------------+-------+----------+-------------+
+| 192.168.8.69 | node-to-node mesh | up    | 01:00:20 | Established |
+| 172.18.0.1   | node-to-node mesh | start | 06:18:15 | Connect     |
++--------------+-------------------+-------+----------+-------------+
+
+
+k1@k2:~$ sudo calicoctl node status
+Calico process is running.
+
+IPv4 BGP status
++--------------+-------------------+-------+----------+-------------+
+| PEER ADDRESS |     PEER TYPE     | STATE |  SINCE   |    INFO     |
++--------------+-------------------+-------+----------+-------------+
+| 192.168.8.98 | node-to-node mesh | up    | 01:00:20 | Established |
+| 172.18.0.1   | node-to-node mesh | start | 06:18:15 | Connect     |
++--------------+-------------------+-------+----------+-------------+
+
+[root@k3 ~]# calicoctl node status
+Calico process is running.
+
+IPv4 BGP status
++--------------+-------------------+-------+----------+---------+
+| PEER ADDRESS |     PEER TYPE     | STATE |  SINCE   |  INFO   |
++--------------+-------------------+-------+----------+---------+
+| 192.168.8.98 | node-to-node mesh | start | 06:18:03 | Passive |
+| 192.168.8.69 | node-to-node mesh | start | 06:18:03 | Passive |
++--------------+-------------------+-------+----------+---------+
+
+```
 
 
 
