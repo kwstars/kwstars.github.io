@@ -212,6 +212,9 @@ $ iptables -I DOCKER-USER -m iprange -i eth0 ! --src-range 192.168.1.1-192.168.1
 
 # 关联主动请求的地址
 $ iptables -I DOCKER-USER -i eth0 -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# 允许相关连接
+$ iptables -I DOCKER-USER -i eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
 ```
 
 
