@@ -1537,8 +1537,7 @@ search default.svc.cluster.local svc.cluster.local cluster.local
 ![img](http://dockone.io/uploads/article/20200215/06b9ed6127d7c96401693beec8ff827f.png)
 
 ```bash
-$ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.34.1/deploy/static/
-provider/baremetal/deploy.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.34.1/deploy/static/provider/baremetal/deploy.yaml
 
 $ kubectl get services -n ingress-nginx
 NAME           TYPE      CLUSTER-IP      EXTERNAL-IP    PORT(S)  \
