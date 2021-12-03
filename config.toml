@@ -1,4 +1,4 @@
-baseURL = "https://www.linux88.com"
+baseURL = "https://linux88.com"
 languageCode = "en-us"
 title = "Kira's blog"
 theme = "maupassant-hugo"
