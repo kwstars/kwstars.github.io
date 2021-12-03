@@ -38,7 +38,7 @@ Export list for 127.0.0.1:
 
 ```bash
 # nfs clinet for ubuntu
-sudo apt install nfs-common
+sudo apt install nfs-common -y
 ```
 
 
