@@ -1,0 +1,329 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=referrer content="no-referrer-when-downgrade"><title>设计模式--建造者 | Kira's blog</title><meta property="og:title" content="设计模式--建造者 - Kira's blog"><meta property="og:type" content="article"><meta property="article:published_time" content="2020-03-04T20:25:05+08:00"><meta property="article:modified_time" content="2020-03-04T20:25:05+08:00"><meta name=Keywords content="golang,go语言,go语言笔记,博客,python"><meta name=description content="设计模式--建造者"><meta name=author content="Kira"><meta property="og:url" content="https://blog.linux88.com/post/DesignPatterns/%E5%88%9B%E5%BB%BA%E5%9E%8B/04%E5%BB%BA%E9%80%A0%E8%80%85/"><link rel="shortcut icon" href=/favicon.ico type=image/x-icon><link rel=stylesheet href=/css/normalize.css><link rel=stylesheet href=/css/style.css><script type=text/javascript src=//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js></script></head><body><header id=header class=clearfix><div class=container><div class=col-group><div class=site-name><a id=logo href=https://blog.linux88.com>Kira's blog</a><p class=description>随笔</p></div><div><nav id=nav-menu class=clearfix><a class=current href=https://blog.linux88.com>首页</a>
+<a href=https://blog.linux88.com/archives/ title=归档>归档</a></nav></div></div></div></header><div id=body><div class=container><div class=col-group><div class=col-8 id=main><div class=res-cons><style type=text/css>.post-toc{position:fixed;width:200px;margin-left:-260px;padding:5px 10px;font-family:Athelas,STHeiti,Microsoft Yahei,serif;font-size:12px;border:1px solid rgba(0,0,0,7%);border-radius:5px;background-color:rgba(255,255,255,.98);background-clip:padding-box;-webkit-box-shadow:1px 1px 2px rgba(0,0,0,.125);box-shadow:1px 1px 2px rgba(0,0,0,.125);word-wrap:break-word;white-space:nowrap;-webkit-box-sizing:border-box;box-sizing:border-box;z-index:999;cursor:pointer;max-height:70%;overflow-y:auto;overflow-x:hidden}.post-toc .post-toc-title{width:100%;margin:0 auto;font-size:20px;font-weight:400;text-transform:uppercase;text-align:center}.post-toc .post-toc-content{font-size:15px}.post-toc .post-toc-content>nav>ul{margin:10px 0}.post-toc .post-toc-content ul{padding-left:5px;list-style:square;margin:.5em;line-height:1.8em}@media print,screen and (max-width:1057px){.post-toc{display:none}}</style><div class=post-toc style=position:absolute;top:188px><h2 class=post-toc-title>文章目录</h2><div class=post-toc-content><nav id=TableOfContents><ul><li><a href=#建造者的概念>建造者的概念</a><ul><li><a href=#什么是建造者模式>什么是建造者模式</a></li><li><a href=#建造者与其他模式的比较>建造者与其他模式的比较</a></li></ul></li><li><a href=#建造者模式的举例>建造者模式的举例</a><ul><li><a href=#机动车制造>机动车制造</a></li></ul></li><li><a href=#优缺点和应用场景>优缺点和应用场景</a></li></ul></nav></div></div><script type=text/javascript>$(document).ready(function(){var a=$(".post-toc"),b,c,d;a.length&&(b=$("#main").offset().left,b<220&&a.css({width:b-10,"margin-left":0-b}),c=a.offset().top-20,d={start:{position:"absolute",top:c},process:{position:"fixed",top:20}},$(window).scroll(function(){var b=$(window).scrollTop();b<c?a.css(d.start):a.css(d.process)}))})</script><article class=post><header><h1 class=post-title>设计模式--建造者</h1></header><date class="post-meta meta-date">2020年3月4日</date><div class=post-meta><span>|</span>
+<span class=meta-category><a href=/categories/Go>Go</a></span></div><div class=post-meta><span id=busuanzi_container_page_pv>|<span id=busuanzi_value_page_pv></span><span>
+阅读</span></span></div><div class=post-content><h2 id=建造者的概念>建造者的概念</h2><h3 id=什么是建造者模式>什么是建造者模式</h3><p>将一复杂对象的构建过程和它的表现分离，使得同样的构建过程可以获取（创建）不同的表现。</p><blockquote><p>Separate the construction of a complex object from its representation so that the same construction process can create different representation.</p></blockquote><pre><code class=language-plantuml data-lang=plantuml>/' BUILDER '/
+
+@startuml
+class Director {
+    + construct()
+}
+
+interface Builder {
+    buildPart()
+}
+
+class ConcreteBuilder {
+    + buildPart()
+    + getResult()
+}
+
+class Product {}
+
+Director *- Builder
+Builder &lt;|-- ConcreteBuilder
+ConcreteBuilder .&gt; Product
+note as N1
+    &lt;b&gt;&lt;color:royalBlue&gt;Builder&lt;/color&gt;&lt;/b&gt;
+    &lt;b&gt;Type:&lt;/b&gt; Creational
+    Separate the construction of a
+    complex object from its representing
+    so that the same construction
+    process can create different
+    representations.
+end note
+@enduml
+</code></pre><p><strong>构建模式（升级版）中主要有三个角色，在设计构建模式时要找到并区分这些角色。</strong></p><ol><li><code>产品（ConcreteBuilder）</code>：即你要构建的对象。</li><li><code>构建者（Builder）</code>：构建模式的核心类，负责产品的构建过程。</li><li><code>调度者（Director）</code>：构建的管理类，负责管理每一种产品的创建数量和创建顺序。</li></ol><h3 id=建造者与其他模式的比较>建造者与其他模式的比较</h3><p><strong>建造者与工厂模式的区别</strong></p><ul><li><p><code>工厂模式</code>关注的是整个产品（整体对象）的生成，即成品的生成</p></li><li><p><code>建造者模式</code>关注的是产品的创建过程和细节，一步一步地由各个子部件构建为一个成品</p></li></ul><p><strong>建造者与组合模式的区别</strong></p><ul><li><code>组合模式</code>：关注的是“整体-部分”的关系，也就是关注对象的内部组成结构。</li><li><code>区别</code> ：组合模式关注的是对象内部的组成结构，强调的是部分与整体的关系。构建模式关注的是对象的创建过程，即由一个一个的子部件构建一个成品的过程。</li><li><code>联系</code>：组合模式和构建模式其实也经常被一起使用。还是以组装电脑为例，组合模式和构建模式一起使用</li></ul><h2 id=建造者模式的举例>建造者模式的举例</h2><h3 id=机动车制造>机动车制造</h3><p>我们将创建一个机动车制造商。 每种车辆的创建（ConcreteBuilder）的过程（被广泛称为算法）都大致相同-选择车辆类型，组装结构，放置车轮和放置座椅。如果您考虑一下，可以使用此描述来制造汽车和摩托车（两个Builder），因此我们将重复使用该描述来制造制造中的汽车。 在我们的示例中，调度者由<code>ManufacturingDirector</code>类型表示。</p><p>据我们所描述的，我们必须处置<code>Car</code>和<code>Motorbike</code>类型的建造者，以及一个称为<code>ManufacturingDirector</code>的独特总监来接管建造者和制造产品。 因此，车辆制造商示例的要求如下：</p><ol><li>我必须拥有能够构造车辆所需的配件</li><li>使用汽车制造商时，<code>VehicleProduct</code>必须返回具有四个轮子，五个座椅和定义为Car的结构</li><li>使用摩托车制造商时，<code>VehicleProduct</code>必须返回带有两个轮子，两个座椅和一个定义为Motorbike的结构</li><li>任何<code>BuildProcess</code>建造者制造的<code>VehicleProduct</code>必须开放修改</li></ol><h4 id=类图>类图</h4><pre><code class=language-plantuml data-lang=plantuml>@startuml
+/' BUILDER '/
+
+class VehicleProduct {
+    int Wheels    
+    int Seats     
+    string Structure 
+}
+
+class Director {
+    + builder Builder
+    + SetBuilder(Builder)
+    + Construct()
+}
+
+interface BuildProcess {
+    + SetWheels() BuildProcess
+    + SetSeats() BuildProcess
+    + SetStructure() BuildProcess
+    + GetVehicle() VehicleProduct
+}
+
+class Car {
+    + v VehicleProduct
+    + SetWheels() BuildProcess
+    + SetSeats() BuildProcess
+    + SetStructure() BuildProcess
+    + GetVehicle() VehicleProduct
+}
+
+class MotorBike {
+    + v VehicleProduct
+    + SetWheels() BuildProcess
+    + SetSeats() BuildProcess
+    + SetStructure() BuildProcess
+    + GetVehicle() VehicleProduct
+}
+
+Director *- BuildProcess
+BuildProcess &lt;|-- Car
+BuildProcess &lt;|-- MotorBike
+Car .&gt; VehicleProduct
+MotorBike .&gt; VehicleProduct
+@enduml
+</code></pre><h4 id=代码实现>代码实现</h4><p>builder.go</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">8
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#66d9ef>type</span> <span style=color:#a6e22e>BuildProcess</span> <span style=color:#66d9ef>interface</span> {
+	<span style=color:#a6e22e>SetWheels</span>() <span style=color:#a6e22e>BuildProcess</span>
+	<span style=color:#a6e22e>SetSeats</span>() <span style=color:#a6e22e>BuildProcess</span>
+	<span style=color:#a6e22e>SetStructure</span>() <span style=color:#a6e22e>BuildProcess</span>
+	<span style=color:#a6e22e>GetVehicle</span>() <span style=color:#a6e22e>VehicleProduct</span>
+}
+</code></pre></td></tr></table></div></div><p>product.go</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#66d9ef>type</span> <span style=color:#a6e22e>VehicleProduct</span> <span style=color:#66d9ef>struct</span> {
+	<span style=color:#a6e22e>Wheels</span>    <span style=color:#66d9ef>int</span>
+	<span style=color:#a6e22e>Seats</span>     <span style=color:#66d9ef>int</span>
+	<span style=color:#a6e22e>Structure</span> <span style=color:#66d9ef>string</span>
+}
+</code></pre></td></tr></table></div></div><p>director.go</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Director</span> <span style=color:#66d9ef>struct</span> {
+	<span style=color:#a6e22e>builder</span> <span style=color:#a6e22e>BuildProcess</span>
+}
+
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>d</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Director</span>) <span style=color:#a6e22e>SetBuilder</span>(<span style=color:#a6e22e>b</span> <span style=color:#a6e22e>BuildProcess</span>) {
+	<span style=color:#a6e22e>d</span>.<span style=color:#a6e22e>builder</span> = <span style=color:#a6e22e>b</span>
+}
+
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>d</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Director</span>) <span style=color:#a6e22e>Construct</span>() <span style=color:#a6e22e>VehicleProduct</span> {
+	<span style=color:#a6e22e>d</span>.<span style=color:#a6e22e>builder</span>.<span style=color:#a6e22e>SetSeats</span>().<span style=color:#a6e22e>SetStructure</span>().<span style=color:#a6e22e>SetWheels</span>()
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>d</span>.<span style=color:#a6e22e>builder</span>.<span style=color:#a6e22e>GetVehicle</span>()
+}
+</code></pre></td></tr></table></div></div><p>car.go</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">18
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">19
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">20
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">21
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">22
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">23
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">24
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">25
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">26
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">27
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">28
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">29
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">30
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">31
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#66d9ef>type</span> <span style=color:#a6e22e>CarBuilder</span> <span style=color:#66d9ef>struct</span> {
+	<span style=color:#a6e22e>v</span> <span style=color:#a6e22e>VehicleProduct</span>
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewCarBuilder</span>() <span style=color:#f92672>*</span><span style=color:#a6e22e>CarBuilder</span> {
+	<span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>CarBuilder</span>{
+		<span style=color:#a6e22e>v</span>: <span style=color:#a6e22e>VehicleProduct</span>{
+			<span style=color:#a6e22e>Wheels</span>:    <span style=color:#ae81ff>4</span>,
+			<span style=color:#a6e22e>Seats</span>:     <span style=color:#ae81ff>5</span>,
+			<span style=color:#a6e22e>Structure</span>: <span style=color:#e6db74>&#34;Car&#34;</span>,
+		},
+	}
+}
+
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>c</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>CarBuilder</span>) <span style=color:#a6e22e>SetWheels</span>() <span style=color:#a6e22e>BuildProcess</span> {
+	<span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>v</span>.<span style=color:#a6e22e>Wheels</span> = <span style=color:#ae81ff>4</span>
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>c</span>
+}
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>c</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>CarBuilder</span>) <span style=color:#a6e22e>SetSeats</span>() <span style=color:#a6e22e>BuildProcess</span> {
+	<span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>v</span>.<span style=color:#a6e22e>Seats</span> = <span style=color:#ae81ff>5</span>
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>c</span>
+}
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>c</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>CarBuilder</span>) <span style=color:#a6e22e>SetStructure</span>() <span style=color:#a6e22e>BuildProcess</span> {
+	<span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>v</span>.<span style=color:#a6e22e>Structure</span> = <span style=color:#e6db74>&#34;Car&#34;</span>
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>c</span>
+}
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>c</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>CarBuilder</span>) <span style=color:#a6e22e>GetVehicle</span>() <span style=color:#a6e22e>VehicleProduct</span> {
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>v</span>
+}
+</code></pre></td></tr></table></div></div><p>motorbike.go</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">18
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">19
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">20
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">21
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">22
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">23
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">24
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">25
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">26
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">27
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">28
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">29
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">30
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">31
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">32
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">33
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+
+<span style=color:#66d9ef>type</span> <span style=color:#a6e22e>BikeBuilder</span> <span style=color:#66d9ef>struct</span> {
+	<span style=color:#a6e22e>v</span> <span style=color:#a6e22e>VehicleProduct</span>
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewBikeBuilder</span>() <span style=color:#f92672>*</span><span style=color:#a6e22e>BikeBuilder</span> {
+	<span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>BikeBuilder</span>{
+		<span style=color:#a6e22e>v</span>: <span style=color:#a6e22e>VehicleProduct</span>{
+			<span style=color:#a6e22e>Wheels</span>:    <span style=color:#ae81ff>2</span>,
+			<span style=color:#a6e22e>Seats</span>:     <span style=color:#ae81ff>2</span>,
+			<span style=color:#a6e22e>Structure</span>: <span style=color:#e6db74>&#34;MoterBike&#34;</span>,
+		},
+	}
+}
+
+
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>b</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>BikeBuilder</span>) <span style=color:#a6e22e>SetWheels</span>() <span style=color:#a6e22e>BuildProcess</span> {
+	<span style=color:#a6e22e>b</span>.<span style=color:#a6e22e>v</span>.<span style=color:#a6e22e>Wheels</span> = <span style=color:#ae81ff>2</span>
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>b</span>
+}
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>b</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>BikeBuilder</span>) <span style=color:#a6e22e>SetSeats</span>() <span style=color:#a6e22e>BuildProcess</span> {
+	<span style=color:#a6e22e>b</span>.<span style=color:#a6e22e>v</span>.<span style=color:#a6e22e>Seats</span> = <span style=color:#ae81ff>2</span>
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>b</span>
+}
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>b</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>BikeBuilder</span>) <span style=color:#a6e22e>SetStructure</span>() <span style=color:#a6e22e>BuildProcess</span> {
+	<span style=color:#a6e22e>b</span>.<span style=color:#a6e22e>v</span>.<span style=color:#a6e22e>Structure</span> = <span style=color:#e6db74>&#34;Motorbike&#34;</span>
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>b</span>
+}
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>b</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>BikeBuilder</span>) <span style=color:#a6e22e>GetVehicle</span>() <span style=color:#a6e22e>VehicleProduct</span> {
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>b</span>.<span style=color:#a6e22e>v</span>
+}
+</code></pre></td></tr></table></div></div><p>main.go</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;fmt&#34;</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+	<span style=color:#a6e22e>director</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>Director</span>{}
+
+	<span style=color:#a6e22e>bikeBuilder</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewBikeBuilder</span>()
+	<span style=color:#a6e22e>director</span>.<span style=color:#a6e22e>SetBuilder</span>(<span style=color:#a6e22e>bikeBuilder</span>)
+	<span style=color:#a6e22e>bike</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>director</span>.<span style=color:#a6e22e>Construct</span>()
+	<span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;%+v\n&#34;</span>, <span style=color:#a6e22e>bike</span>)
+
+	<span style=color:#a6e22e>carBuilder</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewCarBuilder</span>()
+	<span style=color:#a6e22e>director</span>.<span style=color:#a6e22e>SetBuilder</span>(<span style=color:#a6e22e>carBuilder</span>)
+	<span style=color:#a6e22e>car</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>director</span>.<span style=color:#a6e22e>Construct</span>()
+	<span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;%+v\n&#34;</span>, <span style=color:#a6e22e>car</span>)
+}
+</code></pre></td></tr></table></div></div><p>输出</p><pre><code>{Wheels:2 Seats:2 Structure:Motorbike}
+{Wheels:4 Seats:5 Structure:Car}
+</code></pre><h2 id=优缺点和应用场景>优缺点和应用场景</h2><p><strong>优点</strong></p><ol><li>将产品（对象）的创建过程与产品（对象）本身分离开来，让使用方（调用者）可以用相同的创建过程创建不同的产品（对象）。</li><li>将对象的创建过程单独分解出来，使得创建过程更加清晰，能够更加精确地控制复杂对象的创建过程。</li><li>针对升级版的构建模式，每一个具体构建者都相对独立，而与其他的具体构建者无关，因此可以很方便地替换具体构建者或增加新的具体构建者。</li></ol><p><strong>缺点</strong></p><ol><li>增加了很多创建类，如果产品的类型和种类比较多，将会增加很多类，使整个系统变得更加庞杂。</li><li>产品之间的结构相差很大时，构建模式将很难适应。</li></ol><p><strong>应用场景</strong></p><ol><li>产品（对象）的创建过程比较复杂，希望将产品的创建过程和它本身的功能分离开来。</li><li>产品有很多种类，每个种类之间内部结构比较类似，但有很多差异；不同的创建顺序或不同的组合方式，将创建不同的产品。</li></ol><hr><p><a href=https://github.com/RafaelKuebler/PlantUMLDesignPatterns>PlantUMLDesignPatterns</a></p></div><div class=post-archive><h2>See Also</h2><ul class=listing><li><a href=/post/Python/Python%E7%8E%AF%E5%A2%83/>Python环境</a></li><li><a href=/post/Go/gRPC/>gRPC</a></li><li><a href=/post/Go/json/>Go JSON</a></li><li><a href=/post/OPS/Docker%E5%92%8Cdocker-compose%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/>Docker和docker Compose的安装与配置</a></li><li><a href=/post/Go/JWT/>在Golang中实现基于JWT的身份验证</a></li></ul></div><div class="post-meta meta-tags"><ul class=clearfix><li><a href=/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F>设计模式</a></li></ul></div></article><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return}var b=document,a=b.createElement('script');a.async=!0,a.src='//linux88.disqus.com/embed.js',a.setAttribute('data-timestamp',+new Date),(b.head||b.body).appendChild(a)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><footer id=footer><div>&copy; 2021 <a href=https://blog.linux88.com>Kira's blog By Kira</a></div><br><div><div class=github-badge><a href=https://gohugo.io/ target=_black rel=nofollow><span class=badge-subject>Powered by</span><span class="badge-value bg-blue">Hugo</span></a></div><div class=github-badge><a href=https://www.flysnow.org/ target=_black><span class=badge-subject>Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a></div><div class=github-badge><a href=https://github.com/flysnow-org/maupassant-hugo target=_black><span class=badge-subject>Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a></div></div></footer><script src=https://cdn.jsdelivr.net/gh/jmnote/plantuml-encoder@1.2.4/dist/plantuml-encoder.min.js integrity="sha256-Qsk2KRBCN5qVZX7B+8+2IvQl1Aqc723qV1tBCQaVoqo=" crossorigin=anonymous></script><script>(function(){let a="language-plantuml";Array.prototype.forEach.call(document.querySelectorAll("[class^="+a+"]"),function(a){let b=document.createElement("IMG");b.loading='lazy',b.src='http://www.plantuml.com/plantuml/svg/~1'+plantumlEncoder.encode(a.innerText),a.parentNode.insertBefore(b,a),a.style.display='none'})})()</script><script type=text/javascript>window.MathJax={tex2jax:{inlineMath:[['$','$']],processEscapes:!0}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script><a id=rocket href=#top></a><script type=text/javascript src="/js/totop.js?v=0.0.0" async></script><script type=application/javascript>var doNotTrack=!1;doNotTrack||(window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga('create','G-BRM0F3S7ZK','auto'),ga('send','pageview'))</script><script async src=https://www.google-analytics.com/analytics.js></script><script type=text/javascript src=//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js async></script></div><div id=secondary><section class=widget><form id=search action=https://blog.linux88.com/search/ method=get accept-charset=utf-8 target=_blank _lpchecked=1><input type=text name=q maxlength=20 placeholder=Search>
+<input type=hidden name=sitesearch value=https://blog.linux88.com>
+<button type=submit class="submit icon-search"></button></form></section><section class=widget><h3 class=widget-title>最近文章</h3><ul class=widget-list><li><a href=https://blog.linux88.com/post/Go/testing-with-gomock/ title="Testing With Gomock">Testing With Gomock</a></li><li><a href=https://blog.linux88.com/post/Go/embed/ title=Embed>Embed</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%91%BD%E4%BB%A4/ title=Kafka命令>Kafka命令</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%8F%82%E6%95%B0/ title=Kafka参数>Kafka参数</a></li><li><a href=https://blog.linux88.com/post/Go/Contexts-and-structs/ title="Contexts and structs">Contexts and structs</a></li><li><a href=https://blog.linux88.com/post/OPS/Disable_Transparent_Huge_Pages/ title="Disable Transparent Huge Pages (THP)">Disable Transparent Huge Pages (THP)</a></li><li><a href=https://blog.linux88.com/post/Go/Garbage-Collection-Semantics/ title="Garbage Collection Semantics">Garbage Collection Semantics</a></li><li><a href=https://blog.linux88.com/post/OPS/Google-Doc-%E5%87%A0%E4%B8%AA%E5%B0%8F%E6%8A%80%E5%B7%A7/ title="Google Doc 几个小技巧">Google Doc 几个小技巧</a></li><li><a href=https://blog.linux88.com/post/IDE/Goland%E5%BF%AB%E6%8D%B7%E9%94%AE/ title=Goland快捷键>Goland快捷键</a></li><li><a href=https://blog.linux88.com/post/Go/unsafe/ title=Unsafe>Unsafe</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/categories/>分类</a></h3><ul class=widget-list><li><a href=https://blog.linux88.com/categories/GCP/>GCP (1)</a></li><li><a href=https://blog.linux88.com/categories/Git/>Git (1)</a></li><li><a href=https://blog.linux88.com/categories/Go/>Go (27)</a></li><li><a href=https://blog.linux88.com/categories/HTTP/>HTTP (1)</a></li><li><a href=https://blog.linux88.com/categories/IDE/>IDE (2)</a></li><li><a href=https://blog.linux88.com/categories/OPS/>OPS (11)</a></li><li><a href=https://blog.linux88.com/categories/PHP/>PHP (1)</a></li><li><a href=https://blog.linux88.com/categories/Python/>Python (1)</a></li><li><a href=https://blog.linux88.com/categories/RPC/>RPC (1)</a></li><li><a href=https://blog.linux88.com/categories/kafka/>kafka (2)</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/tags/>标签</a></h3><div class=tagcloud><a href=https://blog.linux88.com/tags/BASH/>BASH</a>
+<a href=https://blog.linux88.com/tags/Docker/>Docker</a>
+<a href=https://blog.linux88.com/tags/GCE/>GCE</a>
+<a href=https://blog.linux88.com/tags/Git/>Git</a>
+<a href=https://blog.linux88.com/tags/Go/>Go</a>
+<a href=https://blog.linux88.com/tags/Goland/>Goland</a>
+<a href=https://blog.linux88.com/tags/Google-Doc/>Google Doc</a>
+<a href=https://blog.linux88.com/tags/HTTP/>HTTP</a>
+<a href=https://blog.linux88.com/tags/JSON/>JSON</a>
+<a href=https://blog.linux88.com/tags/JWT/>JWT</a>
+<a href=https://blog.linux88.com/tags/Kubernetes/>Kubernetes</a>
+<a href=https://blog.linux88.com/tags/Linux/>Linux</a>
+<a href=https://blog.linux88.com/tags/PHP/>PHP</a>
+<a href=https://blog.linux88.com/tags/PicGo-Core/>PicGo-Core</a>
+<a href=https://blog.linux88.com/tags/Python/>Python</a>
+<a href=https://blog.linux88.com/tags/RPC/>RPC</a>
+<a href=https://blog.linux88.com/tags/Remmina/>Remmina</a>
+<a href=https://blog.linux88.com/tags/Rsync/>Rsync</a>
+<a href=https://blog.linux88.com/tags/SVN/>SVN</a>
+<a href=https://blog.linux88.com/tags/Typora/>Typora</a>
+<a href=https://blog.linux88.com/tags/UFW/>UFW</a>
+<a href=https://blog.linux88.com/tags/Viper/>Viper</a>
+<a href=https://blog.linux88.com/tags/dlv/>dlv</a>
+<a href=https://blog.linux88.com/tags/gRPC/>gRPC</a>
+<a href=https://blog.linux88.com/tags/kafka/>kafka</a>
+<a href=https://blog.linux88.com/tags/wire/>wire</a>
+<a href=https://blog.linux88.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/>设计模式</a></div></section><section class=widget><h3 class=widget-title>其它</h3><ul class=widget-list><li><a href=https://blog.linux88.com/index.xml>文章 RSS</a></li></ul></section></div></div></div></div></body></html>

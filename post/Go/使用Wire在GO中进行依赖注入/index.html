@@ -1,0 +1,492 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=referrer content="no-referrer-when-downgrade"><title>使用Wire在GO中进行依赖注入 | Kira's blog</title><meta property="og:title" content="使用Wire在GO中进行依赖注入 - Kira's blog"><meta property="og:type" content="article"><meta property="article:published_time" content="2020-10-14T20:21:26+08:00"><meta property="article:modified_time" content="2020-10-14T20:21:26+08:00"><meta name=Keywords content="golang,go语言,go语言笔记,博客,python"><meta name=description content="使用Wire在GO中进行依赖注入"><meta name=author content="Kira"><meta property="og:url" content="https://blog.linux88.com/post/Go/%E4%BD%BF%E7%94%A8Wire%E5%9C%A8GO%E4%B8%AD%E8%BF%9B%E8%A1%8C%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/"><link rel="shortcut icon" href=/favicon.ico type=image/x-icon><link rel=stylesheet href=/css/normalize.css><link rel=stylesheet href=/css/style.css><script type=text/javascript src=//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js></script></head><body><header id=header class=clearfix><div class=container><div class=col-group><div class=site-name><a id=logo href=https://blog.linux88.com>Kira's blog</a><p class=description>随笔</p></div><div><nav id=nav-menu class=clearfix><a class=current href=https://blog.linux88.com>首页</a>
+<a href=https://blog.linux88.com/archives/ title=归档>归档</a></nav></div></div></div></header><div id=body><div class=container><div class=col-group><div class=col-8 id=main><div class=res-cons><style type=text/css>.post-toc{position:fixed;width:200px;margin-left:-260px;padding:5px 10px;font-family:Athelas,STHeiti,Microsoft Yahei,serif;font-size:12px;border:1px solid rgba(0,0,0,7%);border-radius:5px;background-color:rgba(255,255,255,.98);background-clip:padding-box;-webkit-box-shadow:1px 1px 2px rgba(0,0,0,.125);box-shadow:1px 1px 2px rgba(0,0,0,.125);word-wrap:break-word;white-space:nowrap;-webkit-box-sizing:border-box;box-sizing:border-box;z-index:999;cursor:pointer;max-height:70%;overflow-y:auto;overflow-x:hidden}.post-toc .post-toc-title{width:100%;margin:0 auto;font-size:20px;font-weight:400;text-transform:uppercase;text-align:center}.post-toc .post-toc-content{font-size:15px}.post-toc .post-toc-content>nav>ul{margin:10px 0}.post-toc .post-toc-content ul{padding-left:5px;list-style:square;margin:.5em;line-height:1.8em}@media print,screen and (max-width:1057px){.post-toc{display:none}}</style><div class=post-toc style=position:absolute;top:188px><h2 class=post-toc-title>文章目录</h2><div class=post-toc-content><nav id=TableOfContents><ul><li><a href=#让我们的代码来显示go中的依赖注入>让我们的代码来显示GO中的依赖注入</a></li><li><a href=#安装>安装</a></li><li><a href=#使用方式>使用方式</a></li><li><a href=#wire中的一些错误>wire中的一些错误</a><ul><li><a href=#让我们传递一个不属于此依赖关系图的newperson初始化程序文件wirego>让我们传递一个不属于此依赖关系图的NewPerson初始化程序。文件：wire.go</a></li><li><a href=#如果我们忘记传递任何一个initializer怎么办文件wirego>如果我们忘记传递任何一个initializer怎么办？文件：wire.go</a></li><li><a href=#了解wire中使用的两个核心概念>了解Wire中使用的两个核心概念：</a></li><li><a href=#让我们在使用代码进行依赖注入的go上编写更多代码>让我们在使用代码进行依赖注入的GO上编写更多代码</a></li></ul></li></ul></nav></div></div><script type=text/javascript>$(document).ready(function(){var a=$(".post-toc"),b,c,d;a.length&&(b=$("#main").offset().left,b<220&&a.css({width:b-10,"margin-left":0-b}),c=a.offset().top-20,d={start:{position:"absolute",top:c},process:{position:"fixed",top:20}},$(window).scroll(function(){var b=$(window).scrollTop();b<c?a.css(d.start):a.css(d.process)}))})</script><article class=post><header><h1 class=post-title>使用Wire在GO中进行依赖注入</h1></header><date class="post-meta meta-date">2020年10月14日</date><div class=post-meta><span>|</span>
+<span class=meta-category><a href=/categories/Go>Go</a></span></div><div class=post-meta><span id=busuanzi_container_page_pv>|<span id=busuanzi_value_page_pv></span><span>
+阅读</span></span></div><div class=post-content><blockquote><p><strong>什么是依赖注入？</strong>
+依赖注入是您的组件（通常是go中的结构）在创建时应接收其依赖的想法。这与初始化期间构建其自身依赖关系的组件的关联反模式背道而驰。</p></blockquote><p>依赖注入是保持软件“松耦合且易于维护”的最重要的设计原则之一。该原理已在所有类型的开发平台中广泛使用，并且有许多与之相关的出色工具。</p><h2 id=让我们的代码来显示go中的依赖注入>让我们的代码来显示GO中的依赖注入</h2><p>首先，我将编写一个非常简单的程序，该程序模拟一个带有迎宾员向其发送特定消息的问候者的事件。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">18
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">19
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">20
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">21
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">22
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">23
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">24
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">25
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">26
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">27
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">28
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">29
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">30
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">31
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">32
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">33
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">34
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">35
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">36
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">37
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">38
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">39
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">40
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">41
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">42
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">43
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">44
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+	<span style=color:#e6db74>&#34;fmt&#34;</span>
+)
+
+<span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Message</span> <span style=color:#66d9ef>string</span>
+
+<span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Greeter</span> <span style=color:#66d9ef>struct</span> {
+	<span style=color:#a6e22e>Message</span> <span style=color:#a6e22e>Message</span>
+}
+
+<span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Event</span> <span style=color:#66d9ef>struct</span> {
+	<span style=color:#a6e22e>Greeter</span> <span style=color:#a6e22e>Greeter</span>
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewMessage</span>() <span style=color:#a6e22e>Message</span> {
+	<span style=color:#66d9ef>return</span> <span style=color:#e6db74>&#34;Hello there!&#34;</span>
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewGreeter</span>(<span style=color:#a6e22e>m</span> <span style=color:#a6e22e>Message</span>) <span style=color:#a6e22e>Greeter</span> {
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>Greeter</span>{<span style=color:#a6e22e>Message</span>: <span style=color:#a6e22e>m</span>}
+}
+
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>g</span> <span style=color:#a6e22e>Greeter</span>) <span style=color:#a6e22e>Greet</span>() <span style=color:#a6e22e>Message</span> {
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>g</span>.<span style=color:#a6e22e>Message</span>
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewEvent</span>(<span style=color:#a6e22e>g</span> <span style=color:#a6e22e>Greeter</span>) <span style=color:#a6e22e>Event</span> {
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>Event</span>{<span style=color:#a6e22e>Greeter</span>: <span style=color:#a6e22e>g</span>}
+}
+
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>e</span> <span style=color:#a6e22e>Event</span>) <span style=color:#a6e22e>Start</span>() {
+	<span style=color:#a6e22e>msg</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>e</span>.<span style=color:#a6e22e>Greeter</span>.<span style=color:#a6e22e>Greet</span>()
+	<span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>msg</span>)
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+	<span style=color:#a6e22e>message</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewMessage</span>()
+	<span style=color:#a6e22e>greeter</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewGreeter</span>(<span style=color:#a6e22e>message</span>)
+	<span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewEvent</span>(<span style=color:#a6e22e>greeter</span>)
+
+	<span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Start</span>()
+}
+</code></pre></td></tr></table></div></div><p>上面我们做了什么：首先我们创建了一条消息，然后使用该消息创建了一个greeter，最后我们创建了一个带有该gteeter的event。完成所有初始化后，我们就可以开始活动了。</p><p>如果运行文件，将得到输出：</p><pre><code>Hello there!
+</code></pre><p>我们正在使用依赖注入设计原理。实际上，这意味着我们可以传递每个组件所需的任何内容。这种设计风格使其易于编写易于测试的代码，并且可以轻松地将一个依赖关系换成另一个依赖关系。</p><blockquote><p>如果应用程序很小，编写我们自己的代码很容易，但是如果您的应用程序很大并且有复杂的依赖关系图，那该怎么办。如果要在该复杂的树中添加新的依赖项，并确保该依赖项向下传播到树中。这将是头脑风暴，这是一个艰巨的挑战，需要您花费时间。因此，我们使用工具简化了使用依赖注入自动连接组件的过程。</p></blockquote><p>依赖注入是如此重要，以至于Golang社区中已经有很多解决方案，例如<code>Uber</code>的<code>dig</code>和<code>Facebook</code>的<code>inject</code>。它们都通过<code>Reflection Mechanisms</code>实现了<code>runtime</code>依赖项注入。</p><p><strong>Wire与这些工具有何不同？</strong>
+Wire的运行没有运行时状态或反射，即使用于手写初始化，编写与Wire一起使用的代码也很有用。 Wire可以生成源代码并在编译时实现依赖项注入。</p><p><strong>使用Wire的好处：</strong></p><ol><li>由于wire使用代码生成，因此生成的容器代码是显而易见的且可读的。</li><li>轻松调试。如果缺少任何依赖项或未使用任何依赖项，则在编译过程中将报告错误。</li></ol><h2 id=安装>安装</h2><p>安装wire非常容易，只需运行</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>go get github.com/google/wire/cmd/wire
+</code></pre></td></tr></table></div></div><h2 id=使用方式>使用方式</h2><p>从上面的示例中，我们有一个主要功能：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#a6e22e>message</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewMessage</span>()
+    <span style=color:#a6e22e>greeter</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewGreeter</span>(<span style=color:#a6e22e>message</span>)
+    <span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewEvent</span>(<span style=color:#a6e22e>greeter</span>)
+
+    <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Start</span>()
+}
+</code></pre></td></tr></table></div></div><p>让我们将其更改为：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>InitializeEvent</span>()
+    <span style=color:#a6e22e>event</span>.<span style=color:#a6e22e>Start</span>()
+}
+</code></pre></td></tr></table></div></div><p>并创建将具有<code>InitializeEvent()</code>的<code>wire.go</code>文件。看起来像这样:</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+<span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;github.com/google/wire&#34;</span>
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>InitializeEvent</span>() <span style=color:#a6e22e>Event</span> {
+    <span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>NewEvent</span>, <span style=color:#a6e22e>NewGreeter</span>, <span style=color:#a6e22e>NewMessage</span>)
+    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>Event</span>{}
+}
+</code></pre></td></tr></table></div></div><p>在这里，我们只需要一次调用<code>wire.Build</code>就可以传入我们要使用的初始化程序了。对于应按什么顺序传递初始化程序，没有任何规则。例如，您可以使用：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>NewEvent</span>, <span style=color:#a6e22e>NewGreeter</span>, <span style=color:#a6e22e>NewMessage</span>)
+<span style=color:#75715e>// OR
+</span><span style=color:#75715e></span><span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>NewMessage</span>, <span style=color:#a6e22e>NewGreeter</span>, <span style=color:#a6e22e>NewEvent</span>)
+<span style=color:#75715e>// OR
+</span><span style=color:#75715e></span><span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>NewMessage</span>, <span style=color:#a6e22e>NewEvent</span>, <span style=color:#a6e22e>NewGreeter</span>)
+<span style=color:#75715e>// So just pass the initializers that you need
+</span></code></pre></td></tr></table></div></div><p>然后，执行wire</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ wire
+</code></pre></td></tr></table></div></div><p>您应该看到类似以下输出的内容：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ wire
+example: wrote ~/example/wire_gen.go
+</code></pre></td></tr></table></div></div><p>让我们看一下<code>wire_gen.go</code>文件。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// Code generated by Wire. DO NOT EDIT.
+</span><span style=color:#75715e></span>
+<span style=color:#75715e>//go:generate wire
+</span><span style=color:#75715e>//+build !wireinject
+</span><span style=color:#75715e></span><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#75715e>// Injectors from wire.go:
+</span><span style=color:#75715e></span>
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>InitializeEvent</span>() <span style=color:#a6e22e>Event</span> {
+   <span style=color:#a6e22e>message</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewMessage</span>()
+   <span style=color:#a6e22e>greeter</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewGreeter</span>(<span style=color:#a6e22e>message</span>)
+   <span style=color:#a6e22e>event</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewEvent</span>(<span style=color:#a6e22e>greeter</span>)
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>event</span>
+}
+</code></pre></td></tr></table></div></div><p>您可以看到，wire实现了我们自己编写的确切功能。</p><p>注意：</p><ol><li>//go:generate wire
+这意味着将来我们可以通过运行以下命令来重新生成由wire创建的文件</li></ol><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ go generate
+</code></pre></td></tr></table></div></div><ol start=2><li>//+build !wireinject
+在编译期间，将使用此文件，以便我们的依存关系图可以正常工作。</li></ol><p><strong>如果您现在build或run</strong></p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># demo</span>
+./wire_gen.go:10:6: InitializeEvent redeclared in this block
+        previous declaration at ./wire.go:5:24
+</code></pre></td></tr></table></div></div><p><strong>Why this message?</strong>
+这是因为我们必须忽略wire.go文件才能运行具有依赖项注入的wire_gen.go。
+因此，要解决此问题，只需将<code>//+build wireinject</code>添加到您的wire.go文件中
+与<code>package main</code>之间必须要用空行</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>//+build wireinject
+</span><span style=color:#75715e></span>
+<span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;github.com/google/wire&#34;</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>InitializeEvent</span>() <span style=color:#a6e22e>Event</span> {
+	<span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>NewEvent</span>, <span style=color:#a6e22e>NewGreeter</span>, <span style=color:#a6e22e>NewMessage</span>)
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>Event</span>{}
+}
+</code></pre></td></tr></table></div></div><h2 id=wire中的一些错误>wire中的一些错误</h2><h3 id=让我们传递一个不属于此依赖关系图的newperson初始化程序文件wirego>让我们传递一个不属于此依赖关系图的NewPerson初始化程序。文件：wire.go</h3><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">9
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>//+build wireinject
+</span><span style=color:#75715e></span><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;github.com/google/wire&#34;</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>InitializeEvent</span>() <span style=color:#a6e22e>Event</span> {
+   <span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>NewEvent</span>, <span style=color:#a6e22e>NewGreeter</span>, <span style=color:#a6e22e>NewMessage</span>, <span style=color:#a6e22e>NewPerson</span>)
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>Event</span>{}
+}
+</code></pre></td></tr></table></div></div><p>Run wire:</p><pre><code>wire: /home/kira/go/src/demo/wire.go:8:47: undeclared name: NewPerson
+wire: generate failed
+</code></pre><h3 id=如果我们忘记传递任何一个initializer怎么办文件wirego>如果我们忘记传递任何一个initializer怎么办？文件：wire.go</h3><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>//+build wireinject
+</span><span style=color:#75715e></span>
+<span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;github.com/google/wire&#34;</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>InitializeEvent</span>() <span style=color:#a6e22e>Event</span> {
+	<span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>NewMessage</span>, <span style=color:#a6e22e>NewGreeter</span>)
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>Event</span>{}
+}
+</code></pre></td></tr></table></div></div><p>Run wire</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>wire: /home/kira/go/src/demo/wire.go:7:1: inject InitializeEvent: no provider found <span style=color:#66d9ef>for</span> demo.Event, output of injector
+wire: demo: generate failed
+wire: at least one generate failure
+</code></pre></td></tr></table></div></div><p>同样，如果缺少的initializer，则该wire将引<code>needed by some Provider</code>的错误。如果需要，可以尝试一下。</p><h3 id=了解wire中使用的两个核心概念>了解Wire中使用的两个核心概念：</h3><h4 id=1-provider>1. <strong>Provider</strong></h4><p>可以产生值的函数。这些功能是普通的Go代码。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>foobarbaz</span>
+
+<span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Foo</span> <span style=color:#66d9ef>struct</span> {
+    <span style=color:#a6e22e>X</span> <span style=color:#66d9ef>int</span>
+}
+
+<span style=color:#75715e>// ProvideFoo returns a Foo.
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>ProvideFoo</span>() <span style=color:#a6e22e>Foo</span> {
+    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>Foo</span>{<span style=color:#a6e22e>X</span>: <span style=color:#ae81ff>42</span>}
+}
+</code></pre></td></tr></table></div></div><p>就像普通函数一样，必须导出提供程序函数才能从其他包中使用。</p><p>您可以在Provider中执行的操作：</p><ol><li>can specify dependencies with parameters</li><li>can also return errors</li><li>can be grouped into provider sets</li><li>can also add other provider sets into a provider set</li></ol><h4 id=2-injectors>2. Injectors</h4><p>按依赖关系顺序调用提供程序的函数。使用Wire，您可以编写injector’s signature，然后Wire生成函数的主体。通过编写函数声明来声明注入器，该函数声明的主体是对<code>wire.Build</code>的调用。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>initializeBaz</span>(<span style=color:#a6e22e>ctx</span> <span style=color:#a6e22e>context</span>.<span style=color:#a6e22e>Context</span>) (<span style=color:#a6e22e>foobarbaz</span>.<span style=color:#a6e22e>Baz</span>, <span style=color:#66d9ef>error</span>) {
+    <span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>ProvideFoo</span>, <span style=color:#a6e22e>ProvideBar</span>, <span style=color:#a6e22e>ProvideBaz</span>)
+    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>foobarbaz</span>.<span style=color:#a6e22e>Baz</span>{}, <span style=color:#66d9ef>nil</span>
+}
+</code></pre></td></tr></table></div></div><p>像 providers, injectors 可以在输入上对注入程序进行参数化（然后将其发送给providers），并且可以返回错误。</p><p>Wire将在<code>wire_gen.go</code>文件中生成注射器的实现</p><p>我想，您已经在依赖注入中学到了很多关于Wire工具的知识。除了提供者和注入者的概念之外，还有一些高级功能。其中包括 <code>Binding Interfaces</code>, <code>Struct Providers</code>, <code>Binding Values</code>, <code>Cleanup functions</code>等。<a href=https://github.com/google/wire/blob/master/docs/guide.md>您可以在这里了解这些事情</a>。</p><h3 id=让我们在使用代码进行依赖注入的go上编写更多代码>让我们在使用代码进行依赖注入的GO上编写更多代码</h3><p>假设我们有一个简单的系统，它将获取一个URL列表，对每个URL执行HTTP GET，最后将这些请求的结果连接在一起。</p><p><strong>main.go</strong></p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">18
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">19
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">20
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">21
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">22
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">23
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">24
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">25
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">26
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">27
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">28
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">29
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">30
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">31
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">32
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">33
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">34
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">35
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">36
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">37
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">38
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">39
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">40
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">41
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">42
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">43
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">44
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">45
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">46
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">47
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">48
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">49
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">50
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">51
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">52
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">53
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">54
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">55
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">56
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">57
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">58
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+   <span style=color:#e6db74>&#34;bytes&#34;</span>
+ <span style=color:#e6db74>&#34;fmt&#34;</span>)
+
+<span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Logger</span> <span style=color:#66d9ef>struct</span>{}
+
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>logger</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Logger</span>) <span style=color:#a6e22e>Log</span>(<span style=color:#a6e22e>message</span> <span style=color:#66d9ef>string</span>) {
+   <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>message</span>)
+}
+
+<span style=color:#66d9ef>type</span> <span style=color:#a6e22e>HttpClient</span> <span style=color:#66d9ef>struct</span> {
+   <span style=color:#a6e22e>logger</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Logger</span>
+}
+
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>client</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>HttpClient</span>) <span style=color:#a6e22e>Get</span>(<span style=color:#a6e22e>url</span> <span style=color:#66d9ef>string</span>) <span style=color:#66d9ef>string</span> {
+   <span style=color:#a6e22e>client</span>.<span style=color:#a6e22e>logger</span>.<span style=color:#a6e22e>Log</span>(<span style=color:#e6db74>&#34;Getting &#34;</span> <span style=color:#f92672>+</span> <span style=color:#a6e22e>url</span>)
+
+   <span style=color:#75715e>// make an HTTP request
+</span><span style=color:#75715e></span>  <span style=color:#66d9ef>return</span> <span style=color:#e6db74>&#34;my response from &#34;</span> <span style=color:#f92672>+</span> <span style=color:#a6e22e>url</span>
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewHttpClient</span>(<span style=color:#a6e22e>logger</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Logger</span>) <span style=color:#f92672>*</span><span style=color:#a6e22e>HttpClient</span> {
+   <span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>HttpClient</span>{<span style=color:#a6e22e>logger</span>}
+}
+
+<span style=color:#66d9ef>type</span> <span style=color:#a6e22e>ConcatService</span> <span style=color:#66d9ef>struct</span> {
+   <span style=color:#a6e22e>logger</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Logger</span>
+  <span style=color:#a6e22e>client</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>HttpClient</span>
+}
+
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>service</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>ConcatService</span>) <span style=color:#a6e22e>GetAll</span>(<span style=color:#a6e22e>urls</span> <span style=color:#f92672>...</span><span style=color:#66d9ef>string</span>) <span style=color:#66d9ef>string</span> {
+   <span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>logger</span>.<span style=color:#a6e22e>Log</span>(<span style=color:#e6db74>&#34;Running GetAll&#34;</span>)
+
+   <span style=color:#66d9ef>var</span> <span style=color:#a6e22e>result</span> <span style=color:#a6e22e>bytes</span>.<span style=color:#a6e22e>Buffer</span>
+
+  <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>url</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>urls</span> {
+      <span style=color:#a6e22e>result</span>.<span style=color:#a6e22e>WriteString</span>(<span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>client</span>.<span style=color:#a6e22e>Get</span>(<span style=color:#a6e22e>url</span>))
+   }
+
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>result</span>.<span style=color:#a6e22e>String</span>()
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewConcatService</span>(<span style=color:#a6e22e>logger</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Logger</span>, <span style=color:#a6e22e>client</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>HttpClient</span>) <span style=color:#f92672>*</span><span style=color:#a6e22e>ConcatService</span> {
+   <span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>ConcatService</span>{<span style=color:#a6e22e>logger</span>, <span style=color:#a6e22e>client</span>}
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+   <span style=color:#a6e22e>service</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>CreateConcatService</span>()
+
+   <span style=color:#a6e22e>result</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>service</span>.<span style=color:#a6e22e>GetAll</span>(
+      <span style=color:#e6db74>&#34;http://example.com&#34;</span>,
+  <span style=color:#e6db74>&#34;https://drewolson.org&#34;</span>,
+  )
+
+   <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>result</span>)
+}
+</code></pre></td></tr></table></div></div><p><strong>container.go</strong></p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>//+build wireinject
+</span><span style=color:#75715e></span>
+<span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+	<span style=color:#e6db74>&#34;github.com/google/wire&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>CreateConcatService</span>() <span style=color:#f92672>*</span><span style=color:#a6e22e>ConcatService</span> {
+	panic(<span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(
+		<span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Struct</span>(new(<span style=color:#a6e22e>Logger</span>), <span style=color:#e6db74>&#34;*&#34;</span>),
+		<span style=color:#a6e22e>NewHttpClient</span>,
+		<span style=color:#a6e22e>NewConcatService</span>,
+	))
+}
+</code></pre></td></tr></table></div></div><p><strong>Run wire</strong></p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ wire
+example: wrote ~/example/wire_gen.go
+</code></pre></td></tr></table></div></div><p><strong>wire_gen.go</strong></p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// Code generated by Wire. DO NOT EDIT.
+</span><span style=color:#75715e></span>
+<span style=color:#75715e>//go:generate wire
+</span><span style=color:#75715e>//+build !wireinject
+</span><span style=color:#75715e></span>
+<span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#75715e>// Injectors from container.go:
+</span><span style=color:#75715e></span>
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>CreateConcatService</span>() <span style=color:#f92672>*</span><span style=color:#a6e22e>ConcatService</span> {
+	<span style=color:#a6e22e>logger</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>Logger</span>{}
+	<span style=color:#a6e22e>httpClient</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewHttpClient</span>(<span style=color:#a6e22e>logger</span>)
+	<span style=color:#a6e22e>concatService</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewConcatService</span>(<span style=color:#a6e22e>logger</span>, <span style=color:#a6e22e>httpClient</span>)
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>concatService</span>
+}
+</code></pre></td></tr></table></div></div><p>因此，这一切wire与使用GO进行GO中的依赖注入。希望你学到了一些东西。当您学到一些东西时为您鼓掌。</p><hr><p><a href=https://medium.com/wesionary-team/dependency-injection-in-go-with-wire-74f81cd222f6>Dependency Injection in GO with Wire</a></p></div><div class=post-archive><h2>See Also</h2><ul class=listing><li><a href=/post/Go/Golang%E7%9A%84%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/>Golang的环境变量</a></li><li><a href=/post/OPS/UFW/>UFW</a></li><li><a href=/post/rpc/>RPC</a></li><li><a href=/post/IDE/goland/>Goland</a></li><li><a href=/post/PHP/PHP%E7%8E%AF%E5%A2%83/>PHP环境</a></li></ul></div><div class="post-meta meta-tags"><ul class=clearfix><li><a href=/tags/wire>wire</a></li></ul></div></article><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return}var b=document,a=b.createElement('script');a.async=!0,a.src='//linux88.disqus.com/embed.js',a.setAttribute('data-timestamp',+new Date),(b.head||b.body).appendChild(a)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><footer id=footer><div>&copy; 2021 <a href=https://blog.linux88.com>Kira's blog By Kira</a></div><br><div><div class=github-badge><a href=https://gohugo.io/ target=_black rel=nofollow><span class=badge-subject>Powered by</span><span class="badge-value bg-blue">Hugo</span></a></div><div class=github-badge><a href=https://www.flysnow.org/ target=_black><span class=badge-subject>Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a></div><div class=github-badge><a href=https://github.com/flysnow-org/maupassant-hugo target=_black><span class=badge-subject>Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a></div></div></footer><script type=text/javascript>window.MathJax={tex2jax:{inlineMath:[['$','$']],processEscapes:!0}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script><a id=rocket href=#top></a><script type=text/javascript src="/js/totop.js?v=0.0.0" async></script><script type=application/javascript>var doNotTrack=!1;doNotTrack||(window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga('create','G-BRM0F3S7ZK','auto'),ga('send','pageview'))</script><script async src=https://www.google-analytics.com/analytics.js></script><script type=text/javascript src=//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js async></script></div><div id=secondary><section class=widget><form id=search action=https://blog.linux88.com/search/ method=get accept-charset=utf-8 target=_blank _lpchecked=1><input type=text name=q maxlength=20 placeholder=Search>
+<input type=hidden name=sitesearch value=https://blog.linux88.com>
+<button type=submit class="submit icon-search"></button></form></section><section class=widget><h3 class=widget-title>最近文章</h3><ul class=widget-list><li><a href=https://blog.linux88.com/post/Go/testing-with-gomock/ title="Testing With Gomock">Testing With Gomock</a></li><li><a href=https://blog.linux88.com/post/Go/embed/ title=Embed>Embed</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%91%BD%E4%BB%A4/ title=Kafka命令>Kafka命令</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%8F%82%E6%95%B0/ title=Kafka参数>Kafka参数</a></li><li><a href=https://blog.linux88.com/post/Go/Contexts-and-structs/ title="Contexts and structs">Contexts and structs</a></li><li><a href=https://blog.linux88.com/post/OPS/Disable_Transparent_Huge_Pages/ title="Disable Transparent Huge Pages (THP)">Disable Transparent Huge Pages (THP)</a></li><li><a href=https://blog.linux88.com/post/Go/Garbage-Collection-Semantics/ title="Garbage Collection Semantics">Garbage Collection Semantics</a></li><li><a href=https://blog.linux88.com/post/OPS/Google-Doc-%E5%87%A0%E4%B8%AA%E5%B0%8F%E6%8A%80%E5%B7%A7/ title="Google Doc 几个小技巧">Google Doc 几个小技巧</a></li><li><a href=https://blog.linux88.com/post/IDE/Goland%E5%BF%AB%E6%8D%B7%E9%94%AE/ title=Goland快捷键>Goland快捷键</a></li><li><a href=https://blog.linux88.com/post/Go/unsafe/ title=Unsafe>Unsafe</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/categories/>分类</a></h3><ul class=widget-list><li><a href=https://blog.linux88.com/categories/GCP/>GCP (1)</a></li><li><a href=https://blog.linux88.com/categories/Git/>Git (1)</a></li><li><a href=https://blog.linux88.com/categories/Go/>Go (27)</a></li><li><a href=https://blog.linux88.com/categories/HTTP/>HTTP (1)</a></li><li><a href=https://blog.linux88.com/categories/IDE/>IDE (2)</a></li><li><a href=https://blog.linux88.com/categories/OPS/>OPS (11)</a></li><li><a href=https://blog.linux88.com/categories/PHP/>PHP (1)</a></li><li><a href=https://blog.linux88.com/categories/Python/>Python (1)</a></li><li><a href=https://blog.linux88.com/categories/RPC/>RPC (1)</a></li><li><a href=https://blog.linux88.com/categories/kafka/>kafka (2)</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/tags/>标签</a></h3><div class=tagcloud><a href=https://blog.linux88.com/tags/BASH/>BASH</a>
+<a href=https://blog.linux88.com/tags/Docker/>Docker</a>
+<a href=https://blog.linux88.com/tags/GCE/>GCE</a>
+<a href=https://blog.linux88.com/tags/Git/>Git</a>
+<a href=https://blog.linux88.com/tags/Go/>Go</a>
+<a href=https://blog.linux88.com/tags/Goland/>Goland</a>
+<a href=https://blog.linux88.com/tags/Google-Doc/>Google Doc</a>
+<a href=https://blog.linux88.com/tags/HTTP/>HTTP</a>
+<a href=https://blog.linux88.com/tags/JSON/>JSON</a>
+<a href=https://blog.linux88.com/tags/JWT/>JWT</a>
+<a href=https://blog.linux88.com/tags/Kubernetes/>Kubernetes</a>
+<a href=https://blog.linux88.com/tags/Linux/>Linux</a>
+<a href=https://blog.linux88.com/tags/PHP/>PHP</a>
+<a href=https://blog.linux88.com/tags/PicGo-Core/>PicGo-Core</a>
+<a href=https://blog.linux88.com/tags/Python/>Python</a>
+<a href=https://blog.linux88.com/tags/RPC/>RPC</a>
+<a href=https://blog.linux88.com/tags/Remmina/>Remmina</a>
+<a href=https://blog.linux88.com/tags/Rsync/>Rsync</a>
+<a href=https://blog.linux88.com/tags/SVN/>SVN</a>
+<a href=https://blog.linux88.com/tags/Typora/>Typora</a>
+<a href=https://blog.linux88.com/tags/UFW/>UFW</a>
+<a href=https://blog.linux88.com/tags/Viper/>Viper</a>
+<a href=https://blog.linux88.com/tags/dlv/>dlv</a>
+<a href=https://blog.linux88.com/tags/gRPC/>gRPC</a>
+<a href=https://blog.linux88.com/tags/kafka/>kafka</a>
+<a href=https://blog.linux88.com/tags/wire/>wire</a>
+<a href=https://blog.linux88.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/>设计模式</a></div></section><section class=widget><h3 class=widget-title>其它</h3><ul class=widget-list><li><a href=https://blog.linux88.com/index.xml>文章 RSS</a></li></ul></section></div></div></div></div></body></html>

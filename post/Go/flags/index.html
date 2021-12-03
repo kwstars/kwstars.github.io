@@ -1,0 +1,140 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=referrer content="no-referrer-when-downgrade"><title>Go Build Flags | Kira's blog</title><meta property="og:title" content="Go Build Flags - Kira's blog"><meta property="og:type" content="article"><meta property="article:published_time" content="2021-01-13T15:13:52+08:00"><meta property="article:modified_time" content="2021-01-13T15:13:52+08:00"><meta name=Keywords content="golang,go语言,go语言笔记,博客,python"><meta name=description content="Go Build Flags"><meta name=author content="Kira"><meta property="og:url" content="https://blog.linux88.com/post/Go/flags/"><link rel="shortcut icon" href=/favicon.ico type=image/x-icon><link rel=stylesheet href=/css/normalize.css><link rel=stylesheet href=/css/style.css><script type=text/javascript src=//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js></script></head><body><header id=header class=clearfix><div class=container><div class=col-group><div class=site-name><a id=logo href=https://blog.linux88.com>Kira's blog</a><p class=description>随笔</p></div><div><nav id=nav-menu class=clearfix><a class=current href=https://blog.linux88.com>首页</a>
+<a href=https://blog.linux88.com/archives/ title=归档>归档</a></nav></div></div></div></header><div id=body><div class=container><div class=col-group><div class=col-8 id=main><div class=res-cons><style type=text/css>.post-toc{position:fixed;width:200px;margin-left:-260px;padding:5px 10px;font-family:Athelas,STHeiti,Microsoft Yahei,serif;font-size:12px;border:1px solid rgba(0,0,0,7%);border-radius:5px;background-color:rgba(255,255,255,.98);background-clip:padding-box;-webkit-box-shadow:1px 1px 2px rgba(0,0,0,.125);box-shadow:1px 1px 2px rgba(0,0,0,.125);word-wrap:break-word;white-space:nowrap;-webkit-box-sizing:border-box;box-sizing:border-box;z-index:999;cursor:pointer;max-height:70%;overflow-y:auto;overflow-x:hidden}.post-toc .post-toc-title{width:100%;margin:0 auto;font-size:20px;font-weight:400;text-transform:uppercase;text-align:center}.post-toc .post-toc-content{font-size:15px}.post-toc .post-toc-content>nav>ul{margin:10px 0}.post-toc .post-toc-content ul{padding-left:5px;list-style:square;margin:.5em;line-height:1.8em}@media print,screen and (max-width:1057px){.post-toc{display:none}}</style><div class=post-toc style=position:absolute;top:188px><h2 class=post-toc-title>文章目录</h2><div class=post-toc-content><nav id=TableOfContents><ul><li><a href=#在构建时设置一个环境变量>在构建时设置一个环境变量</a></li><li><a href=#bonus-content>Bonus Content</a></li><li><a href=#shrinking-your-go-binaries>Shrinking Your Go Binaries</a></li><li><a href=#windows-executable-without-console-window>Windows Executable Without Console Window</a></li></ul></nav></div></div><script type=text/javascript>$(document).ready(function(){var a=$(".post-toc"),b,c,d;a.length&&(b=$("#main").offset().left,b<220&&a.css({width:b-10,"margin-left":0-b}),c=a.offset().top-20,d={start:{position:"absolute",top:c},process:{position:"fixed",top:20}},$(window).scroll(function(){var b=$(window).scrollTop();b<c?a.css(d.start):a.css(d.process)}))})</script><article class=post><header><h1 class=post-title>Go Build Flags</h1></header><date class="post-meta meta-date">2021年1月13日</date><div class=post-meta><span>|</span>
+<span class=meta-category><a href=/categories/Go>Go</a></span></div><div class=post-meta><span id=busuanzi_container_page_pv>|<span id=busuanzi_value_page_pv></span><span>
+阅读</span></span></div><div class=post-content><h2 id=在构建时设置一个环境变量>在构建时设置一个环境变量</h2><p>一个非常方便的构建标志，允许你在构建时从命令行设置一个变量。看下面的例子。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+)
+
+<span style=color:#66d9ef>var</span> <span style=color:#a6e22e>who</span> <span style=color:#66d9ef>string</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;Hello, %s\n&#34;</span>, <span style=color:#a6e22e>who</span>)
+}
+</code></pre></td></tr></table></div></div><p>使用默认值我们得到以下结果。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ go run main.go
+Hello, 
+
+
+</code></pre></td></tr></table></div></div><p>通过添加<code>-X</code>链接器标志，我们可以在编译时改变<code>who</code>。这只是一个愚蠢的例子，但这对于在编译时更新二进制文件的版本信息很有用。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ go run -ldflags <span style=color:#e6db74>&#34;-X main.who=Kira&#34;</span> main.go         
+Hello, Kira
+</code></pre></td></tr></table></div></div><h2 id=bonus-content>Bonus Content</h2><p><code>symbol table</code>可以使用<code>go tool nm</code>命令查看。只需将可执行文件、对象文件或存档的名称传递给它。让你自己更轻松，只需在输出中寻找你的变量即可。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ go tool nm main | grep who
+  555bf0 D main.who
+</code></pre></td></tr></table></div></div><h2 id=shrinking-your-go-binaries>Shrinking Your Go Binaries</h2><p>go的版本为<code>1.15.6</code>，有原来的<code>2M</code>压缩成了<code>1.4M</code>。</p><p>我们可以用以下标志省略<code>symbol table</code>、调试信息和DWARF表。可以用以下标志省略： <code>-s -w</code></p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ go version
+go version go1.15.6 linux/amd64
+
+$ go build -ldflags <span style=color:#e6db74>&#34;-s -w&#34;</span> -o main-s-w 
+$ ls -alh
+总用量 3.4M
+drwxrwxr-x <span style=color:#ae81ff>2</span> kira kira  <span style=color:#ae81ff>116</span> Jan <span style=color:#ae81ff>13</span> 15:24 .
+drwxrwxrwx <span style=color:#ae81ff>7</span> kira kira  <span style=color:#ae81ff>114</span> Jan <span style=color:#ae81ff>12</span> 12:20 ..
+-rwxrwxr-x <span style=color:#ae81ff>1</span> kira kira 2.0M Jan <span style=color:#ae81ff>13</span> 15:21 main
+-rw-rw-r-- <span style=color:#ae81ff>1</span> kira kira  <span style=color:#ae81ff>103</span> Jan <span style=color:#ae81ff>13</span> 15:17 main.go
+-rwxrwxr-x <span style=color:#ae81ff>1</span> kira kira 1.4M Jan <span style=color:#ae81ff>13</span> 15:24 main-s-w 
+
+</code></pre></td></tr></table></div></div><p>最好的可执行文件打包器之一是<a href=https://upx.github.io/>UPX</a>。它使用起来非常简单。我用<code>-9</code>运行它，以速度为代价获得最大的压缩。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">18
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">19
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">20
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">21
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">22
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ go build 
+$ go build -ldflags <span style=color:#e6db74>&#34;-s -w&#34;</span> -o main-s-w 
+$ upx -9 -o main-s-w-upx main-s-w       
+                       Ultimate Packer <span style=color:#66d9ef>for</span> eXecutables
+                          Copyright <span style=color:#f92672>(</span>C<span style=color:#f92672>)</span> <span style=color:#ae81ff>1996</span> - <span style=color:#ae81ff>2018</span>
+UPX 3.95        Markus Oberhumer, Laszlo Molnar &amp; John Reiser   Aug 26th <span style=color:#ae81ff>2018</span>
+
+        File size         Ratio      Format      Name
+   --------------------   ------   -----------   -----------
+   <span style=color:#ae81ff>1400832</span> -&gt;    <span style=color:#ae81ff>558868</span>   39.90%   linux/amd64   main-s-w-upx                  
+
+Packed <span style=color:#ae81ff>1</span> file.
+
+$ ls -alh
+总用量 3.9M
+drwxrwxr-x <span style=color:#ae81ff>2</span> kira kira   <span style=color:#ae81ff>89</span> Jan <span style=color:#ae81ff>13</span> 15:35 .
+drwxrwxrwx <span style=color:#ae81ff>7</span> kira kira  <span style=color:#ae81ff>114</span> Jan <span style=color:#ae81ff>12</span> 12:20 ..
+-rw-rw-r-- <span style=color:#ae81ff>1</span> kira kira  <span style=color:#ae81ff>140</span> Jan <span style=color:#ae81ff>13</span> 15:34 main.go
+-rwxrwxr-x <span style=color:#ae81ff>1</span> kira kira 2.0M Jan <span style=color:#ae81ff>13</span> 15:35 main
+-rwxrwxr-x <span style=color:#ae81ff>1</span> kira kira 1.4M Jan <span style=color:#ae81ff>13</span> 15:35 main-s-w
+-rwxrwxr-x <span style=color:#ae81ff>1</span> kira kira 546K Jan <span style=color:#ae81ff>13</span> 15:35 main-s-w-upx
+
+</code></pre></td></tr></table></div></div><h2 id=windows-executable-without-console-window>Windows Executable Without Console Window</h2><p>我觉得当我运行一个exe时，打开一个控制台窗口很不美观，而且我不需要看到任何输出。我在任何一个golang网站上都找不到这个文档。我不记得是在哪里找到的了，但知道这一点很好。</p><p>只要在你的链接器标志中添加<code>"-H=windowsgui"</code>。控制台窗口消失了。欢迎你。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>C:<span style=color:#ae81ff>\U</span>sers<span style=color:#ae81ff>\L</span>uke<span style=color:#ae81ff>\g</span>o<span style=color:#ae81ff>\s</span>rc<span style=color:#ae81ff>\h</span>ello&gt;go build -ldflags <span style=color:#e6db74>&#34;-X main.who=Universe -H=windowsgui -s -w&#34;</span>
+</code></pre></td></tr></table></div></div><hr><p><a href=https://lukeeckley.com/post/useful-go-build-flags/>Useful Go Build Flags</a></p><p><a href=https://golang.org/cmd/link/>Command link</a></p><p><a href=https://juejin.cn/post/6844903598342537230>git版本信息注入go程序</a></p></div><div class=post-archive><h2>See Also</h2><ul class=listing><li><a href=/post/Go/slice%E6%80%A7%E8%83%BD/>Slice Tricks</a></li><li><a href=/post/Go/LittleKnowledge/>LittleKnowledge</a></li><li><a href=/post/Go/Golang%E7%9A%84%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/>Golang的环境变量</a></li><li><a href=/post/HTTP/HTTP3%E5%9F%BA%E4%BA%8EQUIC%E7%9A%84HTTP%E5%A6%82%E4%BD%95%E5%B7%A5%E4%BD%9CUDP%E7%9A%84%E4%BC%98%E7%82%B9%E7%89%88%E6%9C%AC%E4%B9%8B%E9%97%B4%E7%9A%84%E5%B7%AE%E5%BC%82v1.0-v1.1-v2-v3/>HTTP3(基于QUIC的HTTP)如何工作？UDP的优点，版本之间的差异(v1.0/v1.1/v2/v3)</a></li><li><a href=/post/OPS/MicroK8s/>MicroK8s</a></li></ul></div><div class="post-meta meta-tags"><ul class=clearfix><li><a href=/tags/Go>Go</a></li></ul></div></article><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return}var b=document,a=b.createElement('script');a.async=!0,a.src='//linux88.disqus.com/embed.js',a.setAttribute('data-timestamp',+new Date),(b.head||b.body).appendChild(a)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><footer id=footer><div>&copy; 2021 <a href=https://blog.linux88.com>Kira's blog By Kira</a></div><br><div><div class=github-badge><a href=https://gohugo.io/ target=_black rel=nofollow><span class=badge-subject>Powered by</span><span class="badge-value bg-blue">Hugo</span></a></div><div class=github-badge><a href=https://www.flysnow.org/ target=_black><span class=badge-subject>Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a></div><div class=github-badge><a href=https://github.com/flysnow-org/maupassant-hugo target=_black><span class=badge-subject>Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a></div></div></footer><script type=text/javascript>window.MathJax={tex2jax:{inlineMath:[['$','$']],processEscapes:!0}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script><a id=rocket href=#top></a><script type=text/javascript src="/js/totop.js?v=0.0.0" async></script><script type=application/javascript>var doNotTrack=!1;doNotTrack||(window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga('create','G-BRM0F3S7ZK','auto'),ga('send','pageview'))</script><script async src=https://www.google-analytics.com/analytics.js></script><script type=text/javascript src=//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js async></script></div><div id=secondary><section class=widget><form id=search action=https://blog.linux88.com/search/ method=get accept-charset=utf-8 target=_blank _lpchecked=1><input type=text name=q maxlength=20 placeholder=Search>
+<input type=hidden name=sitesearch value=https://blog.linux88.com>
+<button type=submit class="submit icon-search"></button></form></section><section class=widget><h3 class=widget-title>最近文章</h3><ul class=widget-list><li><a href=https://blog.linux88.com/post/Go/testing-with-gomock/ title="Testing With Gomock">Testing With Gomock</a></li><li><a href=https://blog.linux88.com/post/Go/embed/ title=Embed>Embed</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%91%BD%E4%BB%A4/ title=Kafka命令>Kafka命令</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%8F%82%E6%95%B0/ title=Kafka参数>Kafka参数</a></li><li><a href=https://blog.linux88.com/post/Go/Contexts-and-structs/ title="Contexts and structs">Contexts and structs</a></li><li><a href=https://blog.linux88.com/post/OPS/Disable_Transparent_Huge_Pages/ title="Disable Transparent Huge Pages (THP)">Disable Transparent Huge Pages (THP)</a></li><li><a href=https://blog.linux88.com/post/Go/Garbage-Collection-Semantics/ title="Garbage Collection Semantics">Garbage Collection Semantics</a></li><li><a href=https://blog.linux88.com/post/OPS/Google-Doc-%E5%87%A0%E4%B8%AA%E5%B0%8F%E6%8A%80%E5%B7%A7/ title="Google Doc 几个小技巧">Google Doc 几个小技巧</a></li><li><a href=https://blog.linux88.com/post/IDE/Goland%E5%BF%AB%E6%8D%B7%E9%94%AE/ title=Goland快捷键>Goland快捷键</a></li><li><a href=https://blog.linux88.com/post/Go/unsafe/ title=Unsafe>Unsafe</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/categories/>分类</a></h3><ul class=widget-list><li><a href=https://blog.linux88.com/categories/GCP/>GCP (1)</a></li><li><a href=https://blog.linux88.com/categories/Git/>Git (1)</a></li><li><a href=https://blog.linux88.com/categories/Go/>Go (27)</a></li><li><a href=https://blog.linux88.com/categories/HTTP/>HTTP (1)</a></li><li><a href=https://blog.linux88.com/categories/IDE/>IDE (2)</a></li><li><a href=https://blog.linux88.com/categories/OPS/>OPS (11)</a></li><li><a href=https://blog.linux88.com/categories/PHP/>PHP (1)</a></li><li><a href=https://blog.linux88.com/categories/Python/>Python (1)</a></li><li><a href=https://blog.linux88.com/categories/RPC/>RPC (1)</a></li><li><a href=https://blog.linux88.com/categories/kafka/>kafka (2)</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/tags/>标签</a></h3><div class=tagcloud><a href=https://blog.linux88.com/tags/BASH/>BASH</a>
+<a href=https://blog.linux88.com/tags/Docker/>Docker</a>
+<a href=https://blog.linux88.com/tags/GCE/>GCE</a>
+<a href=https://blog.linux88.com/tags/Git/>Git</a>
+<a href=https://blog.linux88.com/tags/Go/>Go</a>
+<a href=https://blog.linux88.com/tags/Goland/>Goland</a>
+<a href=https://blog.linux88.com/tags/Google-Doc/>Google Doc</a>
+<a href=https://blog.linux88.com/tags/HTTP/>HTTP</a>
+<a href=https://blog.linux88.com/tags/JSON/>JSON</a>
+<a href=https://blog.linux88.com/tags/JWT/>JWT</a>
+<a href=https://blog.linux88.com/tags/Kubernetes/>Kubernetes</a>
+<a href=https://blog.linux88.com/tags/Linux/>Linux</a>
+<a href=https://blog.linux88.com/tags/PHP/>PHP</a>
+<a href=https://blog.linux88.com/tags/PicGo-Core/>PicGo-Core</a>
+<a href=https://blog.linux88.com/tags/Python/>Python</a>
+<a href=https://blog.linux88.com/tags/RPC/>RPC</a>
+<a href=https://blog.linux88.com/tags/Remmina/>Remmina</a>
+<a href=https://blog.linux88.com/tags/Rsync/>Rsync</a>
+<a href=https://blog.linux88.com/tags/SVN/>SVN</a>
+<a href=https://blog.linux88.com/tags/Typora/>Typora</a>
+<a href=https://blog.linux88.com/tags/UFW/>UFW</a>
+<a href=https://blog.linux88.com/tags/Viper/>Viper</a>
+<a href=https://blog.linux88.com/tags/dlv/>dlv</a>
+<a href=https://blog.linux88.com/tags/gRPC/>gRPC</a>
+<a href=https://blog.linux88.com/tags/kafka/>kafka</a>
+<a href=https://blog.linux88.com/tags/wire/>wire</a>
+<a href=https://blog.linux88.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/>设计模式</a></div></section><section class=widget><h3 class=widget-title>其它</h3><ul class=widget-list><li><a href=https://blog.linux88.com/index.xml>文章 RSS</a></li></ul></section></div></div></div></div></body></html>

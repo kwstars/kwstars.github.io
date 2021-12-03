@@ -1,0 +1,169 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=referrer content="no-referrer-when-downgrade"><title>Linux Commands | Kira's blog</title><meta property="og:title" content="Linux Commands - Kira's blog"><meta property="og:type" content="article"><meta property="article:published_time" content="2017-11-06T10:57:38+08:00"><meta property="article:modified_time" content="2017-11-06T10:57:38+08:00"><meta name=Keywords content="golang,go语言,go语言笔记,博客,python"><meta name=description content="Linux Commands"><meta name=author content="Kira"><meta property="og:url" content="https://blog.linux88.com/post/OPS/LinuxCommand/"><link rel="shortcut icon" href=/favicon.ico type=image/x-icon><link rel=stylesheet href=/css/normalize.css><link rel=stylesheet href=/css/style.css><script type=text/javascript src=//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js></script></head><body><header id=header class=clearfix><div class=container><div class=col-group><div class=site-name><a id=logo href=https://blog.linux88.com>Kira's blog</a><p class=description>随笔</p></div><div><nav id=nav-menu class=clearfix><a class=current href=https://blog.linux88.com>首页</a>
+<a href=https://blog.linux88.com/archives/ title=归档>归档</a></nav></div></div></div></header><div id=body><div class=container><div class=col-group><div class=col-8 id=main><div class=res-cons><style type=text/css>.post-toc{position:fixed;width:200px;margin-left:-260px;padding:5px 10px;font-family:Athelas,STHeiti,Microsoft Yahei,serif;font-size:12px;border:1px solid rgba(0,0,0,7%);border-radius:5px;background-color:rgba(255,255,255,.98);background-clip:padding-box;-webkit-box-shadow:1px 1px 2px rgba(0,0,0,.125);box-shadow:1px 1px 2px rgba(0,0,0,.125);word-wrap:break-word;white-space:nowrap;-webkit-box-sizing:border-box;box-sizing:border-box;z-index:999;cursor:pointer;max-height:70%;overflow-y:auto;overflow-x:hidden}.post-toc .post-toc-title{width:100%;margin:0 auto;font-size:20px;font-weight:400;text-transform:uppercase;text-align:center}.post-toc .post-toc-content{font-size:15px}.post-toc .post-toc-content>nav>ul{margin:10px 0}.post-toc .post-toc-content ul{padding-left:5px;list-style:square;margin:.5em;line-height:1.8em}@media print,screen and (max-width:1057px){.post-toc{display:none}}</style><div class=post-toc style=position:absolute;top:188px><h2 class=post-toc-title>文章目录</h2><div class=post-toc-content><nav id=TableOfContents><ul><li><a href=#查找替换多个文件>查找替换多个文件</a></li><li><a href=#清空docker的log>清空docker的log</a></li><li><a href=#查找文件夹中最的的文件或目录>查找文件夹中最的的文件或目录</a></li><li><a href=#下载并解压>下载并解压</a></li><li><a href=#ssh>SSH</a><ul><li><a href=#local-forwarding>Local Forwarding</a></li><li><a href=#remote-forwarding>Remote Forwarding</a></li><li><a href=#dynamic-port-forwarding>Dynamic Port Forwarding</a></li><li><a href=#chain-port-forwarding>Chain port forwarding</a></li><li><a href=#sshkey相关>SSHkey相关</a></li></ul></li><li><a href=#curl>curl</a></li><li><a href=#dd>dd</a><ul><li><a href=#查看当前的网络流量>查看当前的网络流量</a></li><li><a href=#查看文件句柄>查看文件句柄</a></li></ul></li><li><a href=#tcpdump>tcpdump</a></li><li><a href=#ip>ip</a></li></ul></nav></div></div><script type=text/javascript>$(document).ready(function(){var a=$(".post-toc"),b,c,d;a.length&&(b=$("#main").offset().left,b<220&&a.css({width:b-10,"margin-left":0-b}),c=a.offset().top-20,d={start:{position:"absolute",top:c},process:{position:"fixed",top:20}},$(window).scroll(function(){var b=$(window).scrollTop();b<c?a.css(d.start):a.css(d.process)}))})</script><article class=post><header><h1 class=post-title>Linux Commands</h1></header><date class="post-meta meta-date">2017年11月6日</date><div class=post-meta><span>|</span>
+<span class=meta-category><a href=/categories/OPS>OPS</a></span></div><div class=post-meta><span id=busuanzi_container_page_pv>|<span id=busuanzi_value_page_pv></span><span>
+阅读</span></span></div><div class=post-content><h2 id=查找替换多个文件>查找替换多个文件</h2><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>grep -rl <span style=color:#e6db74>&#34;old_string&#34;</span> . | xargs sed -i <span style=color:#e6db74>&#39;s/old_string/new_string/g&#39;</span>
+</code></pre></td></tr></table></div></div><ul><li><strong>grep -rl</strong>: 递归搜索，仅打印包含“ old_string”的文件</li><li><strong>xargs</strong>: 接受<code>grep</code>命令的输出，并使其成为下一个命令（即<code>sed</code>命令）的输入</li><li><strong>sed -i ‘s/old_string/new_string/g’:</strong> new_string替换old_string</li></ul><h2 id=清空docker的log>清空docker的log</h2><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>cat /dev/null &gt; /var/lib/docker/containers/CONTAINER_ID/CONTAINER_ID-json.log
+
+cat /dev/null &gt;  <span style=color:#66d9ef>$(</span>docker inspect --format<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;{{.LogPath}}&#39;</span>  CONTAINER_ID<span style=color:#66d9ef>)</span>
+</code></pre></td></tr></table></div></div><h2 id=查找文件夹中最的的文件或目录>查找文件夹中最的的文件或目录</h2><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>find /var/lib/docker/ -name <span style=color:#e6db74>&#34;*.log&#34;</span> -exec ls -sh <span style=color:#f92672>{}</span> <span style=color:#ae81ff>\;</span> | sort -h -r | head -20
+
+du -aSh /var/lib/docker/ | sort -h -r | head -n <span style=color:#ae81ff>10</span>
+</code></pre></td></tr></table></div></div><h2 id=下载并解压>下载并解压</h2><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># wget</span>
+wget -c https://studygolang.com/dl/golang/go1.15.6.linux-amd64.tar.gz  -O - | tar -xz -C /
+
+<span style=color:#75715e># curl</span>
+curl -SL https://studygolang.com/dl/golang/go1.15.6.linux-amd64.tar.gz | tar -xvz -C /
+</code></pre></td></tr></table></div></div><h2 id=ssh>SSH</h2><p><a href=https://www.ssh.com/ssh/tunneling/example>SSH Port Forwarding Example</a></p><p><a href=https://blog.fundebug.com/2017/04/24/ssh-port-forwarding/>玩转SSH端口转发</a></p><p>local -> forwarder -> server</p><h3 id=local-forwarding>Local Forwarding</h3><p>一般来讲，云主机的防火墙默认只打开了22端口，如果需要访问6379端口的话，需要修改防火墙。为了保证安全，防火墙需要配置允许访问的IP地址。但是，本地公网IP通常是网络提供商动态分配的，是不断变化的。这样的话，防火墙配置需要经常修改，就会很麻烦。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># ssh -L [&lt;local host&gt;:]&lt;local port&gt;:&lt;remote host&gt;:&lt;remote port&gt; &lt;SSH hostname&gt;</span>
+<span style=color:#75715e># 将server(192.168.1.123)的6379端口 转发到 本地的18080端口</span>
+ssh -L 127.0.0.1:18080:192.168.1.123:6379 FORWARDER_HOST
+</code></pre></td></tr></table></div></div><h3 id=remote-forwarding>Remote Forwarding</h3><p>本地主机运行了一个服务，端口为18080，远程云主机需要访问这个服务。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># ssh -R [&lt;local host&gt;:]&lt;local port&gt;:&lt;remote host&gt;:&lt;remote port&gt; &lt;SSH hostname&gt;</span>
+<span style=color:#75715e># 将本地的6379端口，转发到PROXY上的18080端口</span>
+ssh -R 18080:127.0.0.1:6379 FORWARDER_HOST  
+
+<span style=color:#75715e># 默认情况下，OpenSSH仅允许PROXY连接转发的端口。但是，可以使用服务器配置文件sshd_config中的GatewayPorts选项进行控制。可以使用以下替代方法：</span>
+GatewayPorts yes
+
+<span style=color:#75715e># 客户端可以指定一个IP地址，允许从该IP地址连接到端口。语法如下：在此示例中，仅允许从IP地址52.194.1.73到端口8080的连接。</span>
+GatewayPorts clientspecified
+ssh -R 52.194.1.73:8080:localhost:80 host147.aws.example.com
+
+<span style=color:#75715e># 案例: 将公司内的 clinet1 和 clinet2 端口映射到 FORWARDER_HOST(公网主机)上的 2221, 2222端口</span>
+ssh -R 2221:clinet1:22 -R 2222:clinet1:22 FORWARDER_HOST
+</code></pre></td></tr></table></div></div><h3 id=dynamic-port-forwarding>Dynamic Port Forwarding</h3><ol><li>把远端ssh服务器当作了一个安全的代理服务器</li><li>远程云主机运行了多个服务，分别使用了不同端口，本地主机需要访问这些服务。</li></ol><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># ssh -D [&lt;local host&gt;:]&lt;local port&gt; &lt;SSH hostname&gt;</span>
+ssh -D localhost:44444 root@REMOTE_HOST
+</code></pre></td></tr></table></div></div><p>本地设置socket代理 <code>127.0.0.1:4444</code>，就可以通过REMOTE_HOST访问了</p><h3 id=chain-port-forwarding>Chain port forwarding</h3><p>家中<code>A电脑</code> 通过 云主机B 访问 公司<code>C电脑</code></p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 在C主机通过远程端口转发登陆云主机B</span>
+ssh -R localhost:2000:localhost:3000 root@103.59.22.17
+
+<span style=color:#75715e># 在A电脑通过本地端口转发登录云主机B</span>
+ssh -L localhost:3000:localhost:2000 root@103.59.22.17
+
+<span style=color:#75715e># 在A电脑通过 3000 端口访问</span>
+</code></pre></td></tr></table></div></div><h3 id=sshkey相关>SSHkey相关</h3><h4 id=ssh-key-创建>ssh key 创建</h4><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>ssh-keygen -t rsa -f ~/.ssh/<span style=color:#f92672>[</span>KEY_FILENAME<span style=color:#f92672>]</span> -C <span style=color:#f92672>[</span>USERNAME<span style=color:#f92672>]</span>
+chmod <span style=color:#ae81ff>400</span> ~/.ssh/<span style=color:#f92672>[</span>KEY_FILENAME<span style=color:#f92672>]</span>
+</code></pre></td></tr></table></div></div><ul><li><code>[KEY_FILENAME]</code>：您要用于SSH密钥文件的名称。例如，文件名<code>my-ssh-key</code>生成一个名为的私钥文件<code>my-ssh-key</code>和一个名为的公钥文件<code>my-ssh-key.pub</code>。</li><li><code>[USERNAME]</code>：连接到虚拟机的用户名。例如， <code>cloudysanfrancisco@gmail.com</code>或<code>cloudysanfrancisco</code>。</li></ul><h4 id=ssh-key-修改私钥密码>ssh key 修改私钥密码</h4><pre><code>ssh-keygen -p
+
+ssh-keygen -p -f ~/.ssh/id_dsa
+</code></pre><h4 id=ssh-key-修改私钥comment>ssh key 修改私钥comment</h4><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>ssh-keygen -c -C <span style=color:#e6db74>&#34;my new comment&#34;</span> -f ~/.ssh/my_ssh_key
+</code></pre></td></tr></table></div></div><h2 id=curl>curl</h2><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 通过本地的socks5代理访问google</span>
+curl -so /dev/null -w <span style=color:#e6db74>&#34;%{http_code}&#34;</span> google.com -x socks5://127.0.0.1:1080
+</code></pre></td></tr></table></div></div><h2 id=dd>dd</h2><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 先跳过 skip*bs 大小的内容，然后复制 count*bs 大小的内容过来用 grep 查询。</span>
+dd <span style=color:#66d9ef>if</span><span style=color:#f92672>=</span>FILE bs<span style=color:#f92672>=</span><span style=color:#ae81ff>1024</span> skip<span style=color:#f92672>=</span><span style=color:#ae81ff>1000</span> count<span style=color:#f92672>=</span><span style=color:#ae81ff>2000</span> | grep SEARCH_CONTENT
+</code></pre></td></tr></table></div></div><h3 id=查看当前的网络流量>查看当前的网络流量</h3><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 查看总的流入和流出流量</span>
+iftop
+
+<span style=color:#75715e># 查看对应应用接收和发送的流量</span>
+nethogs
+</code></pre></td></tr></table></div></div><h3 id=查看文件句柄>查看文件句柄</h3><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>ulimit -a
+
+<span style=color:#75715e># 查看系统打开句柄最大数量</span>
+cat /proc/sys/fs/file-max
+
+<span style=color:#75715e># 查看打开句柄总数</span>
+lsof | awk <span style=color:#e6db74>&#39;{print $2}&#39;</span> | wc -l
+
+<span style=color:#75715e># 根据打开文件句柄的数量降序排列，其中第二列为进程ID：</span>
+lsof | awk <span style=color:#e6db74>&#39;{print $2}&#39;</span> | sort | uniq -c | sort -nr | more
+
+<span style=color:#75715e># 修改打开数</span>
+vim /etc/security/limits.conf 
+root soft nofile <span style=color:#ae81ff>65535</span>
+root hard nofile <span style=color:#ae81ff>65535</span>
+* soft nofile <span style=color:#ae81ff>65535</span>
+* hard nofile <span style=color:#ae81ff>65535</span>
+</code></pre></td></tr></table></div></div><h2 id=tcpdump>tcpdump</h2><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>tcpdump -n -S -i eth0 host www.baidu.com and tcp port <span style=color:#ae81ff>80</span>
+</code></pre></td></tr></table></div></div><h2 id=ip>ip</h2><p><a href=https://www.cyberciti.biz/faq/linux-ip-command-examples-usage-syntax/>Linux ip Command Examples</a></p><p><img class=mx-auto alt=webwxgetmsgimg src=https://i.imgur.com/KqAb9LA.jpg></p></div><div class=post-archive><h2>See Also</h2><ul class=listing><li><a href=/archives/>归档</a></li><li><a href=/search/>搜索</a></li></ul></div><div class="post-meta meta-tags"><ul class=clearfix><li><a href=/tags/BASH>BASH</a></li></ul></div></article><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return}var b=document,a=b.createElement('script');a.async=!0,a.src='//linux88.disqus.com/embed.js',a.setAttribute('data-timestamp',+new Date),(b.head||b.body).appendChild(a)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><footer id=footer><div>&copy; 2021 <a href=https://blog.linux88.com>Kira's blog By Kira</a></div><br><div><div class=github-badge><a href=https://gohugo.io/ target=_black rel=nofollow><span class=badge-subject>Powered by</span><span class="badge-value bg-blue">Hugo</span></a></div><div class=github-badge><a href=https://www.flysnow.org/ target=_black><span class=badge-subject>Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a></div><div class=github-badge><a href=https://github.com/flysnow-org/maupassant-hugo target=_black><span class=badge-subject>Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a></div></div></footer><script type=text/javascript>window.MathJax={tex2jax:{inlineMath:[['$','$']],processEscapes:!0}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script><a id=rocket href=#top></a><script type=text/javascript src="/js/totop.js?v=0.0.0" async></script><script type=application/javascript>var doNotTrack=!1;doNotTrack||(window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga('create','G-BRM0F3S7ZK','auto'),ga('send','pageview'))</script><script async src=https://www.google-analytics.com/analytics.js></script><script type=text/javascript src=//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js async></script></div><div id=secondary><section class=widget><form id=search action=https://blog.linux88.com/search/ method=get accept-charset=utf-8 target=_blank _lpchecked=1><input type=text name=q maxlength=20 placeholder=Search>
+<input type=hidden name=sitesearch value=https://blog.linux88.com>
+<button type=submit class="submit icon-search"></button></form></section><section class=widget><h3 class=widget-title>最近文章</h3><ul class=widget-list><li><a href=https://blog.linux88.com/post/Go/testing-with-gomock/ title="Testing With Gomock">Testing With Gomock</a></li><li><a href=https://blog.linux88.com/post/Go/embed/ title=Embed>Embed</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%91%BD%E4%BB%A4/ title=Kafka命令>Kafka命令</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%8F%82%E6%95%B0/ title=Kafka参数>Kafka参数</a></li><li><a href=https://blog.linux88.com/post/Go/Contexts-and-structs/ title="Contexts and structs">Contexts and structs</a></li><li><a href=https://blog.linux88.com/post/OPS/Disable_Transparent_Huge_Pages/ title="Disable Transparent Huge Pages (THP)">Disable Transparent Huge Pages (THP)</a></li><li><a href=https://blog.linux88.com/post/Go/Garbage-Collection-Semantics/ title="Garbage Collection Semantics">Garbage Collection Semantics</a></li><li><a href=https://blog.linux88.com/post/OPS/Google-Doc-%E5%87%A0%E4%B8%AA%E5%B0%8F%E6%8A%80%E5%B7%A7/ title="Google Doc 几个小技巧">Google Doc 几个小技巧</a></li><li><a href=https://blog.linux88.com/post/IDE/Goland%E5%BF%AB%E6%8D%B7%E9%94%AE/ title=Goland快捷键>Goland快捷键</a></li><li><a href=https://blog.linux88.com/post/Go/unsafe/ title=Unsafe>Unsafe</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/categories/>分类</a></h3><ul class=widget-list><li><a href=https://blog.linux88.com/categories/GCP/>GCP (1)</a></li><li><a href=https://blog.linux88.com/categories/Git/>Git (1)</a></li><li><a href=https://blog.linux88.com/categories/Go/>Go (27)</a></li><li><a href=https://blog.linux88.com/categories/HTTP/>HTTP (1)</a></li><li><a href=https://blog.linux88.com/categories/IDE/>IDE (2)</a></li><li><a href=https://blog.linux88.com/categories/OPS/>OPS (11)</a></li><li><a href=https://blog.linux88.com/categories/PHP/>PHP (1)</a></li><li><a href=https://blog.linux88.com/categories/Python/>Python (1)</a></li><li><a href=https://blog.linux88.com/categories/RPC/>RPC (1)</a></li><li><a href=https://blog.linux88.com/categories/kafka/>kafka (2)</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/tags/>标签</a></h3><div class=tagcloud><a href=https://blog.linux88.com/tags/BASH/>BASH</a>
+<a href=https://blog.linux88.com/tags/Docker/>Docker</a>
+<a href=https://blog.linux88.com/tags/GCE/>GCE</a>
+<a href=https://blog.linux88.com/tags/Git/>Git</a>
+<a href=https://blog.linux88.com/tags/Go/>Go</a>
+<a href=https://blog.linux88.com/tags/Goland/>Goland</a>
+<a href=https://blog.linux88.com/tags/Google-Doc/>Google Doc</a>
+<a href=https://blog.linux88.com/tags/HTTP/>HTTP</a>
+<a href=https://blog.linux88.com/tags/JSON/>JSON</a>
+<a href=https://blog.linux88.com/tags/JWT/>JWT</a>
+<a href=https://blog.linux88.com/tags/Kubernetes/>Kubernetes</a>
+<a href=https://blog.linux88.com/tags/Linux/>Linux</a>
+<a href=https://blog.linux88.com/tags/PHP/>PHP</a>
+<a href=https://blog.linux88.com/tags/PicGo-Core/>PicGo-Core</a>
+<a href=https://blog.linux88.com/tags/Python/>Python</a>
+<a href=https://blog.linux88.com/tags/RPC/>RPC</a>
+<a href=https://blog.linux88.com/tags/Remmina/>Remmina</a>
+<a href=https://blog.linux88.com/tags/Rsync/>Rsync</a>
+<a href=https://blog.linux88.com/tags/SVN/>SVN</a>
+<a href=https://blog.linux88.com/tags/Typora/>Typora</a>
+<a href=https://blog.linux88.com/tags/UFW/>UFW</a>
+<a href=https://blog.linux88.com/tags/Viper/>Viper</a>
+<a href=https://blog.linux88.com/tags/dlv/>dlv</a>
+<a href=https://blog.linux88.com/tags/gRPC/>gRPC</a>
+<a href=https://blog.linux88.com/tags/kafka/>kafka</a>
+<a href=https://blog.linux88.com/tags/wire/>wire</a>
+<a href=https://blog.linux88.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/>设计模式</a></div></section><section class=widget><h3 class=widget-title>其它</h3><ul class=widget-list><li><a href=https://blog.linux88.com/index.xml>文章 RSS</a></li></ul></section></div></div></div></div></body></html>

@@ -1,0 +1,104 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=referrer content="no-referrer-when-downgrade"><title>Git常用操作 | Kira's blog</title><meta property="og:title" content="Git常用操作 - Kira's blog"><meta property="og:type" content="article"><meta property="article:published_time" content="2020-05-10T16:21:40+08:00"><meta property="article:modified_time" content="2020-05-10T16:21:40+08:00"><meta name=Keywords content="golang,go语言,go语言笔记,博客,python"><meta name=description content="Git常用操作"><meta name=author content="Kira"><meta property="og:url" content="https://blog.linux88.com/post/OPS/Git%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C/"><link rel="shortcut icon" href=/favicon.ico type=image/x-icon><link rel=stylesheet href=/css/normalize.css><link rel=stylesheet href=/css/style.css><script type=text/javascript src=//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js></script></head><body><header id=header class=clearfix><div class=container><div class=col-group><div class=site-name><a id=logo href=https://blog.linux88.com>Kira's blog</a><p class=description>随笔</p></div><div><nav id=nav-menu class=clearfix><a class=current href=https://blog.linux88.com>首页</a>
+<a href=https://blog.linux88.com/archives/ title=归档>归档</a></nav></div></div></div></header><div id=body><div class=container><div class=col-group><div class=col-8 id=main><div class=res-cons><style type=text/css>.post-toc{position:fixed;width:200px;margin-left:-260px;padding:5px 10px;font-family:Athelas,STHeiti,Microsoft Yahei,serif;font-size:12px;border:1px solid rgba(0,0,0,7%);border-radius:5px;background-color:rgba(255,255,255,.98);background-clip:padding-box;-webkit-box-shadow:1px 1px 2px rgba(0,0,0,.125);box-shadow:1px 1px 2px rgba(0,0,0,.125);word-wrap:break-word;white-space:nowrap;-webkit-box-sizing:border-box;box-sizing:border-box;z-index:999;cursor:pointer;max-height:70%;overflow-y:auto;overflow-x:hidden}.post-toc .post-toc-title{width:100%;margin:0 auto;font-size:20px;font-weight:400;text-transform:uppercase;text-align:center}.post-toc .post-toc-content{font-size:15px}.post-toc .post-toc-content>nav>ul{margin:10px 0}.post-toc .post-toc-content ul{padding-left:5px;list-style:square;margin:.5em;line-height:1.8em}@media print,screen and (max-width:1057px){.post-toc{display:none}}</style><div class=post-toc style=position:absolute;top:188px><h2 class=post-toc-title>文章目录</h2><div class=post-toc-content><nav id=TableOfContents><ul><li><ul><li><a href=#子模块>子模块</a></li><li><a href=#删除分支>删除分支</a></li><li><a href=#git-diff>git diff</a></li><li><a href=#保持最新的fork>保持最新的fork</a></li><li><a href=#推送本地的test分支到master>推送本地的test分支到master</a></li><li><a href=#暂存>暂存</a></li><li><a href=#删除某个历史记录>删除某个历史记录</a></li><li><a href=#单独删除某个文件的所有历史记录>单独删除某个文件的所有历史记录</a></li></ul></li></ul></nav></div></div><script type=text/javascript>$(document).ready(function(){var a=$(".post-toc"),b,c,d;a.length&&(b=$("#main").offset().left,b<220&&a.css({width:b-10,"margin-left":0-b}),c=a.offset().top-20,d={start:{position:"absolute",top:c},process:{position:"fixed",top:20}},$(window).scroll(function(){var b=$(window).scrollTop();b<c?a.css(d.start):a.css(d.process)}))})</script><article class=post><header><h1 class=post-title>Git常用操作</h1></header><date class="post-meta meta-date">2020年5月10日</date><div class=post-meta><span>|</span>
+<span class=meta-category><a href=/categories/Git>Git</a></span></div><div class=post-meta><span id=busuanzi_container_page_pv>|<span id=busuanzi_value_page_pv></span><span>
+阅读</span></span></div><div class=post-content><h3 id=子模块>子模块</h3><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 添加git的子模块</span>
+git submodule add https://github.com/koirand/pulp.git themes/pulp
+
+<span style=color:#75715e># 更新子模块</span>
+git submodule update --remote --rebase
+</code></pre></td></tr></table></div></div><h3 id=删除分支>删除分支</h3><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">8
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 查看分支</span>
+git branch -a
+
+<span style=color:#75715e># 删除远程分支</span>
+git push origin --delete BRANCH_NAME
+
+<span style=color:#75715e># 删除本地分支</span>
+git branch -d BRANCH_NAME
+</code></pre></td></tr></table></div></div><h3 id=git-diff>git diff</h3><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">8
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 工作区与暂存区</span>
+git diff FILE_NAME
+
+<span style=color:#75715e># 暂存区与本地仓库</span>
+git diff --cached FINE_NAME
+
+<span style=color:#75715e># 本地仓库与远程仓库</span>
+git diff BRANCH origin/main
+</code></pre></td></tr></table></div></div><h3 id=保持最新的fork>保持最新的fork</h3><p><a href=https://gist.github.com/CristinaSolana/1885435>Keeping a fork up to date</a></p><p><a href=https://gist.github.com/glennblock/1974465>fork forced sync</a></p><p><a href=https://ardalis.com/syncing-a-fork-of-a-github-repository-with-upstream/>Syncing a Fork of a GitHub Repository with Upstream</a></p><h3 id=推送本地的test分支到master>推送本地的test分支到master</h3><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>git push origin test:master
+</code></pre></td></tr></table></div></div><h3 id=暂存>暂存</h3><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>git stash
+
+git stash list 
+
+git stath pop
+</code></pre></td></tr></table></div></div><h3 id=删除某个历史记录>删除某个历史记录</h3><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 找到删除commit的上一条COMMIT_ID</span>
+git rebase -i COMMIT_ID
+
+<span style=color:#75715e># 将要删除的pick改为drop</span>
+</code></pre></td></tr></table></div></div><h3 id=单独删除某个文件的所有历史记录>单独删除某个文件的所有历史记录</h3><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>git filter-branch --force --index-filter <span style=color:#e6db74>&#39;git rm --cached --ignore-unmatch src/main/resources/config/application-test.yml&#39;</span> --prune-empty --tag-name-filter cat -- --all
+
+git push origin --force --all
+
+git push origin --force --tags
+</code></pre></td></tr></table></div></div></div><div class=post-archive><h2>See Also</h2><ul class=listing><li><a href=/post/Go/dlv/>dlv</a></li><li><a href=/post/DesignPatterns/%E8%A1%8C%E4%B8%BA%E5%9E%8B/18%E7%8A%B6%E6%80%81/>设计模式--状态模式</a></li><li><a href=/post/DesignPatterns/%E8%A1%8C%E4%B8%BA%E5%9E%8B/13%E8%A7%82%E5%AF%9F%E8%80%85/>设计模式--观察者模式</a></li><li><a href=/post/DesignPatterns/%E7%BB%93%E6%9E%84%E5%9E%8B/12%E4%BA%AB%E5%85%83/>设计模式--享元模式</a></li><li><a href=/post/DesignPatterns/%E7%BB%93%E6%9E%84%E5%9E%8B/10%E5%A4%96%E8%A7%82/>设计模式--外观模式</a></li></ul></div><div class="post-meta meta-tags"><ul class=clearfix><li><a href=/tags/Git>Git</a></li></ul></div></article><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return}var b=document,a=b.createElement('script');a.async=!0,a.src='//linux88.disqus.com/embed.js',a.setAttribute('data-timestamp',+new Date),(b.head||b.body).appendChild(a)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><footer id=footer><div>&copy; 2021 <a href=https://blog.linux88.com>Kira's blog By Kira</a></div><br><div><div class=github-badge><a href=https://gohugo.io/ target=_black rel=nofollow><span class=badge-subject>Powered by</span><span class="badge-value bg-blue">Hugo</span></a></div><div class=github-badge><a href=https://www.flysnow.org/ target=_black><span class=badge-subject>Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a></div><div class=github-badge><a href=https://github.com/flysnow-org/maupassant-hugo target=_black><span class=badge-subject>Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a></div></div></footer><script type=text/javascript>window.MathJax={tex2jax:{inlineMath:[['$','$']],processEscapes:!0}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script><a id=rocket href=#top></a><script type=text/javascript src="/js/totop.js?v=0.0.0" async></script><script type=application/javascript>var doNotTrack=!1;doNotTrack||(window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga('create','G-BRM0F3S7ZK','auto'),ga('send','pageview'))</script><script async src=https://www.google-analytics.com/analytics.js></script><script type=text/javascript src=//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js async></script></div><div id=secondary><section class=widget><form id=search action=https://blog.linux88.com/search/ method=get accept-charset=utf-8 target=_blank _lpchecked=1><input type=text name=q maxlength=20 placeholder=Search>
+<input type=hidden name=sitesearch value=https://blog.linux88.com>
+<button type=submit class="submit icon-search"></button></form></section><section class=widget><h3 class=widget-title>最近文章</h3><ul class=widget-list><li><a href=https://blog.linux88.com/post/Go/testing-with-gomock/ title="Testing With Gomock">Testing With Gomock</a></li><li><a href=https://blog.linux88.com/post/Go/embed/ title=Embed>Embed</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%91%BD%E4%BB%A4/ title=Kafka命令>Kafka命令</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%8F%82%E6%95%B0/ title=Kafka参数>Kafka参数</a></li><li><a href=https://blog.linux88.com/post/Go/Contexts-and-structs/ title="Contexts and structs">Contexts and structs</a></li><li><a href=https://blog.linux88.com/post/OPS/Disable_Transparent_Huge_Pages/ title="Disable Transparent Huge Pages (THP)">Disable Transparent Huge Pages (THP)</a></li><li><a href=https://blog.linux88.com/post/Go/Garbage-Collection-Semantics/ title="Garbage Collection Semantics">Garbage Collection Semantics</a></li><li><a href=https://blog.linux88.com/post/OPS/Google-Doc-%E5%87%A0%E4%B8%AA%E5%B0%8F%E6%8A%80%E5%B7%A7/ title="Google Doc 几个小技巧">Google Doc 几个小技巧</a></li><li><a href=https://blog.linux88.com/post/IDE/Goland%E5%BF%AB%E6%8D%B7%E9%94%AE/ title=Goland快捷键>Goland快捷键</a></li><li><a href=https://blog.linux88.com/post/Go/unsafe/ title=Unsafe>Unsafe</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/categories/>分类</a></h3><ul class=widget-list><li><a href=https://blog.linux88.com/categories/GCP/>GCP (1)</a></li><li><a href=https://blog.linux88.com/categories/Git/>Git (1)</a></li><li><a href=https://blog.linux88.com/categories/Go/>Go (27)</a></li><li><a href=https://blog.linux88.com/categories/HTTP/>HTTP (1)</a></li><li><a href=https://blog.linux88.com/categories/IDE/>IDE (2)</a></li><li><a href=https://blog.linux88.com/categories/OPS/>OPS (11)</a></li><li><a href=https://blog.linux88.com/categories/PHP/>PHP (1)</a></li><li><a href=https://blog.linux88.com/categories/Python/>Python (1)</a></li><li><a href=https://blog.linux88.com/categories/RPC/>RPC (1)</a></li><li><a href=https://blog.linux88.com/categories/kafka/>kafka (2)</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/tags/>标签</a></h3><div class=tagcloud><a href=https://blog.linux88.com/tags/BASH/>BASH</a>
+<a href=https://blog.linux88.com/tags/Docker/>Docker</a>
+<a href=https://blog.linux88.com/tags/GCE/>GCE</a>
+<a href=https://blog.linux88.com/tags/Git/>Git</a>
+<a href=https://blog.linux88.com/tags/Go/>Go</a>
+<a href=https://blog.linux88.com/tags/Goland/>Goland</a>
+<a href=https://blog.linux88.com/tags/Google-Doc/>Google Doc</a>
+<a href=https://blog.linux88.com/tags/HTTP/>HTTP</a>
+<a href=https://blog.linux88.com/tags/JSON/>JSON</a>
+<a href=https://blog.linux88.com/tags/JWT/>JWT</a>
+<a href=https://blog.linux88.com/tags/Kubernetes/>Kubernetes</a>
+<a href=https://blog.linux88.com/tags/Linux/>Linux</a>
+<a href=https://blog.linux88.com/tags/PHP/>PHP</a>
+<a href=https://blog.linux88.com/tags/PicGo-Core/>PicGo-Core</a>
+<a href=https://blog.linux88.com/tags/Python/>Python</a>
+<a href=https://blog.linux88.com/tags/RPC/>RPC</a>
+<a href=https://blog.linux88.com/tags/Remmina/>Remmina</a>
+<a href=https://blog.linux88.com/tags/Rsync/>Rsync</a>
+<a href=https://blog.linux88.com/tags/SVN/>SVN</a>
+<a href=https://blog.linux88.com/tags/Typora/>Typora</a>
+<a href=https://blog.linux88.com/tags/UFW/>UFW</a>
+<a href=https://blog.linux88.com/tags/Viper/>Viper</a>
+<a href=https://blog.linux88.com/tags/dlv/>dlv</a>
+<a href=https://blog.linux88.com/tags/gRPC/>gRPC</a>
+<a href=https://blog.linux88.com/tags/kafka/>kafka</a>
+<a href=https://blog.linux88.com/tags/wire/>wire</a>
+<a href=https://blog.linux88.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/>设计模式</a></div></section><section class=widget><h3 class=widget-title>其它</h3><ul class=widget-list><li><a href=https://blog.linux88.com/index.xml>文章 RSS</a></li></ul></section></div></div></div></div></body></html>

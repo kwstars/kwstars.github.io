@@ -1,0 +1,455 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=referrer content="no-referrer-when-downgrade"><title>在Golang中实现基于JWT的身份验证 | Kira's blog</title><meta property="og:title" content="在Golang中实现基于JWT的身份验证 - Kira's blog"><meta property="og:type" content="article"><meta property="article:published_time" content="2019-10-13T19:53:26+08:00"><meta property="article:modified_time" content="2019-10-13T19:53:26+08:00"><meta name=Keywords content="golang,go语言,go语言笔记,博客,python"><meta name=description content="在Golang中实现基于JWT的身份验证"><meta name=author content="Kira"><meta property="og:url" content="https://blog.linux88.com/post/Go/JWT/"><link rel="shortcut icon" href=/favicon.ico type=image/x-icon><link rel=stylesheet href=/css/normalize.css><link rel=stylesheet href=/css/style.css><script type=text/javascript src=//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js></script></head><body><header id=header class=clearfix><div class=container><div class=col-group><div class=site-name><a id=logo href=https://blog.linux88.com>Kira's blog</a><p class=description>随笔</p></div><div><nav id=nav-menu class=clearfix><a class=current href=https://blog.linux88.com>首页</a>
+<a href=https://blog.linux88.com/archives/ title=归档>归档</a></nav></div></div></div></header><div id=body><div class=container><div class=col-group><div class=col-8 id=main><div class=res-cons><style type=text/css>.post-toc{position:fixed;width:200px;margin-left:-260px;padding:5px 10px;font-family:Athelas,STHeiti,Microsoft Yahei,serif;font-size:12px;border:1px solid rgba(0,0,0,7%);border-radius:5px;background-color:rgba(255,255,255,.98);background-clip:padding-box;-webkit-box-shadow:1px 1px 2px rgba(0,0,0,.125);box-shadow:1px 1px 2px rgba(0,0,0,.125);word-wrap:break-word;white-space:nowrap;-webkit-box-sizing:border-box;box-sizing:border-box;z-index:999;cursor:pointer;max-height:70%;overflow-y:auto;overflow-x:hidden}.post-toc .post-toc-title{width:100%;margin:0 auto;font-size:20px;font-weight:400;text-transform:uppercase;text-align:center}.post-toc .post-toc-content{font-size:15px}.post-toc .post-toc-content>nav>ul{margin:10px 0}.post-toc .post-toc-content ul{padding-left:5px;list-style:square;margin:.5em;line-height:1.8em}@media print,screen and (max-width:1057px){.post-toc{display:none}}</style><div class=post-toc style=position:absolute;top:188px><h2 class=post-toc-title>文章目录</h2><div class=post-toc-content><nav id=TableOfContents><ul><li><a href=#jwt的格式>JWT的格式</a></li><li><a href=#jwt签名如何工作>JWT签名如何工作</a></li><li><a href=#验证jwt>验证JWT</a></li><li><a href=#在go中实现>在Go中实现</a><ul><li><a href=#创建http服务器>创建HTTP服务器</a></li><li><a href=#处理用户登录>处理用户登录</a></li><li><a href=#处理认证后的路由>处理认证后的路由</a></li><li><a href=#续签您的令牌>续签您的令牌</a></li><li><a href=#运行我们的应用程序>运行我们的应用程序</a></li></ul></li></ul></nav></div></div><script type=text/javascript>$(document).ready(function(){var a=$(".post-toc"),b,c,d;a.length&&(b=$("#main").offset().left,b<220&&a.css({width:b-10,"margin-left":0-b}),c=a.offset().top-20,d={start:{position:"absolute",top:c},process:{position:"fixed",top:20}},$(window).scroll(function(){var b=$(window).scrollTop();b<c?a.css(d.start):a.css(d.process)}))})</script><article class=post><header><h1 class=post-title>在Golang中实现基于JWT的身份验证</h1></header><date class="post-meta meta-date">2019年10月13日</date><div class=post-meta><span>|</span>
+<span class=meta-category><a href=/categories/Go>Go</a></span></div><div class=post-meta><span id=busuanzi_container_page_pv>|<span id=busuanzi_value_page_pv></span><span>
+阅读</span></span></div><div class=post-content><p>本文翻译自<a href=https://www.sohamkamani.com/golang/jwt-authentication/>《Implementing JWT based authentication in Golang》</a>。全文如下：</p><p>认证是让您的应用程序知道<code>向您的应用程序发送的请求</code>一定是<code>请求人</code>发送的。JSON网络令牌(JWT)是一种允许认证的方法，它不需要在系统本身存储任何关于用户的信息（与基于<a href=https://www.sohamkamani.com/blog/2018/03/25/golang-session-authentication/>session based authentication</a>相反）。</p><p>在这篇文章中，我们将演示基于JWT的身份验证是如何工作的，以及如何在Go中构建一个示例应用程序来实现它。</p><blockquote><p>如果你已经知道JWT是如何工作的，只是想看看它的实现，你可以跳过前面的内容，或者在<a href=https://github.com/sohamkamani/jwt-go-example>Github上看看源代码</a>。</p></blockquote><h2 id=jwt的格式>JWT的格式</h2><p>假设我们有一个叫user1的用户，他们试图登录一个应用程序或网站。一旦成功，他们会收到一个类似这样的令牌。</p><pre><code class=language-jwt data-lang=jwt>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIxIiwiZXhwIjoxNTQ3OTc0MDgyfQ.2Ye5_w1z3zpD4dSGdRp3s98ZipCNQqmsHRB9vioOx54
+</code></pre><p>这是一个JWT，由三部分组成（用.分隔）。</p><ol><li><p>第一部分是<code>header</code>(eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9)。头部指定了用于生成签名的算法等信息（第三部分）。这一部分是非常标准的，对于任何使用相同算法的JWT都是一样的。</p></li><li><p>第二部分是<code>payload</code>（eyJ1c2VybmFtZSI6InVzZXIxIiwiZXhwIjoxNTQ3OTc0MDgyfQ），其中包含应用的特定信息（在我们的例子中，这是用户名），以及有关令牌的到期时间和有效性的信息。</p></li><li><p>第三部分是<code>signature</code>（2Ye5_w1z3zpD4dSGdRp3s98ZipCNQqmsHRB9vioOx54）。它是由前两部分和一个秘密密钥组合和散列生成的。</p></li></ol><p>现在有趣的是，<code>header</code>和<code>payload</code>没有加密。它们只是base64编码。这意味着，任何人都可以通过解码来查看它们的内容。</p><p>例如，我们可以使用这个<a href=https://jwt.io/>在线工具</a>，并解码<code>header</code>或<code>payload</code>。</p><p><code>header</code>的内容：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-json data-lang=json>{ <span style=color:#f92672>&#34;alg&#34;</span>: <span style=color:#e6db74>&#34;HS256&#34;</span>, <span style=color:#f92672>&#34;typ&#34;</span>: <span style=color:#e6db74>&#34;JWT&#34;</span> }
+</code></pre></td></tr></table></div></div><blockquote><p>如果您使用的是Linux或Mac OS，则还可以在终端上执行以下语句：</p><p>echo eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 | base64 -d</p></blockquote><p>类似地，<code>payload</code>的内容为：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-json data-lang=json>{ <span style=color:#f92672>&#34;username&#34;</span>: <span style=color:#e6db74>&#34;user1&#34;</span>, <span style=color:#f92672>&#34;exp&#34;</span>: <span style=color:#ae81ff>1547974082</span> }
+</code></pre></td></tr></table></div></div><h2 id=jwt签名如何工作>JWT签名如何工作</h2><p>因此，如果JWT的头和签名可以被任何人读取和写入，那么实际上是什么使JWT安全？答案在于最后一部分（签名）是如何生成的。</p><p>假设你是一个应用程序，想要向一个已经成功登录的用户（例如，user1）发出JWT。</p><p>制作<code>header</code>和<code>payload</code>是非常简单的。<code>header</code>或多或少是固定的，而<code>payload</code>是JSON对象是通过设置用户ID和到期时间（以unix毫秒为单位）形成的。</p><p>签署令牌的应用还会有一个密钥，这是一个秘密值，只有应用自己知道。然后，<code>header</code>和<code>payload</code>的base64表示与秘钥相结合，然后通过散列算法（在本例中是<code>HS256</code>，正如头中提到的那样</p><p><img class=mx-auto alt=image-20210413202518511 src=https://i.imgur.com/Um7Q9Zv.png></p><p>关于算法如何实现的细节不在本篇文章的讨论范围内，但要注意的是，它是单向的，这意味着我们无法逆转算法并获得用于制作签名的组件&mldr;&mldr;所以我们的秘钥仍然是秘密的。</p><h2 id=验证jwt>验证JWT</h2><p>为了核实接收的JWT，将再次使用接收的JWT的<code>header</code>和<code>payload</code>以及秘钥生成的<code>signature</code>。如果签名与JWT上的签名相匹配，那么JWT被认为是有效的。</p><p>现在让我们假设你是一个黑客，试图发行一个假令牌。您可以轻松地生成<code>header</code>和<code>payload</code>，但如果不知道密钥，就无法生成有效的签名。如果你试图篡改有效JWT的现有<code>payload</code>，<code>signature</code>将不再匹配。</p><p><img class=mx-auto alt=image-20210413202841049 src=https://i.imgur.com/emQz5ZL.png></p><p>这样，JWT可以以一种安全的方式授权用户，而无需在应用程序服务器上实际存储任何信息（除了密钥）。</p><h2 id=在go中实现>在Go中实现</h2><p>现在，我们已经了解了基于JWT的身份验证的工作原理，让我们使用Go来实现它。</p><h3 id=创建http服务器>创建HTTP服务器</h3><p>首先，使用所需的路由初始化HTTP服务器：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+	<span style=color:#e6db74>&#34;log&#34;</span>
+	<span style=color:#e6db74>&#34;net/http&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+	<span style=color:#75715e>// &#34;Signin &#34;和 &#34;Welcome &#34;是我们要实现的处理程序。
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>HandleFunc</span>(<span style=color:#e6db74>&#34;/signin&#34;</span>, <span style=color:#a6e22e>Signin</span>)
+	<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>HandleFunc</span>(<span style=color:#e6db74>&#34;/welcome&#34;</span>, <span style=color:#a6e22e>Welcome</span>)
+	<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>HandleFunc</span>(<span style=color:#e6db74>&#34;/refresh&#34;</span>, <span style=color:#a6e22e>Refresh</span>)
+
+	<span style=color:#75715e>// 启动8000端口的服务器
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Fatal</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>ListenAndServe</span>(<span style=color:#e6db74>&#34;:8000&#34;</span>, <span style=color:#66d9ef>nil</span>))
+}
+</code></pre></td></tr></table></div></div><p>现在，我们可以定义<code>Signin</code>和<code>Welcome</code>routes。</p><h3 id=处理用户登录>处理用户登录</h3><p><code>/signin</code>路由将获取用户凭据并登录。为简化起见，我们将用户信息存储在内存：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>users</span> = <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>string</span>{
+	<span style=color:#e6db74>&#34;user1&#34;</span>: <span style=color:#e6db74>&#34;password1&#34;</span>,
+	<span style=color:#e6db74>&#34;user2&#34;</span>: <span style=color:#e6db74>&#34;password2&#34;</span>,
+}
+</code></pre></td></tr></table></div></div><p>因此，目前，我们的应用程序中只有两个有效用户：<code>user1</code>和<code>user2</code>。接下来，我们可以编写<code>Signin</code> HTTP处理程序。对于此示例，我们使用<code>dgrijalva/jwt-go</code>库来帮助我们创建和验证JWT令牌。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">18
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">19
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">20
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">21
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">22
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">23
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">24
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">25
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">26
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">27
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">28
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">29
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">30
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">31
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">32
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">33
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">34
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">35
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">36
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">37
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">38
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">39
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">40
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">41
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">42
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">43
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">44
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">45
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">46
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">47
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">48
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">49
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">50
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">51
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">52
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">53
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">54
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">55
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">56
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">57
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">58
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">59
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">60
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">61
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">62
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">63
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">64
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">65
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">66
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">67
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">68
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">69
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">70
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">71
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">72
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">73
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">74
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">75
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">76
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>import</span> (
+    <span style=color:#75715e>//...
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 导入 jwt-go 
+</span><span style=color:#75715e></span>	<span style=color:#e6db74>&#34;github.com/dgrijalva/jwt-go&#34;</span>
+	<span style=color:#75715e>//...
+</span><span style=color:#75715e></span>)
+
+<span style=color:#75715e>// 用于signature的JWT密钥
+</span><span style=color:#75715e></span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>jwtKey</span> = []byte(<span style=color:#e6db74>&#34;my_secret_key&#34;</span>)
+
+<span style=color:#66d9ef>var</span> <span style=color:#a6e22e>users</span> = <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>string</span>{
+	<span style=color:#e6db74>&#34;user1&#34;</span>: <span style=color:#e6db74>&#34;password1&#34;</span>,
+	<span style=color:#e6db74>&#34;user2&#34;</span>: <span style=color:#e6db74>&#34;password2&#34;</span>,
+}
+
+<span style=color:#75715e>// 创建一个结构来读取请求body中的用户名和密码。
+</span><span style=color:#75715e></span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Credentials</span> <span style=color:#66d9ef>struct</span> {
+	<span style=color:#a6e22e>Password</span> <span style=color:#66d9ef>string</span> <span style=color:#e6db74>`json:&#34;password&#34;`</span>
+	<span style=color:#a6e22e>Username</span> <span style=color:#66d9ef>string</span> <span style=color:#e6db74>`json:&#34;username&#34;`</span>
+}
+
+<span style=color:#75715e>// 创建一个将被编码为JWT的结构(payload)。我们添加jwt.StandardClaims作为嵌入式类型，以提供诸如到期时间等字段。
+</span><span style=color:#75715e></span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Claims</span> <span style=color:#66d9ef>struct</span> {
+	<span style=color:#a6e22e>Username</span> <span style=color:#66d9ef>string</span> <span style=color:#e6db74>`json:&#34;username&#34;`</span>
+	<span style=color:#a6e22e>jwt</span>.<span style=color:#a6e22e>StandardClaims</span>
+}
+
+<span style=color:#75715e>// 创建Signin处理程序
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Signin</span>(<span style=color:#a6e22e>w</span> <span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>ResponseWriter</span>, <span style=color:#a6e22e>r</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>Request</span>) {
+	<span style=color:#66d9ef>var</span> <span style=color:#a6e22e>creds</span> <span style=color:#a6e22e>Credentials</span>
+	<span style=color:#75715e>// 获取 JSON body并解码到Credentials
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>json</span>.<span style=color:#a6e22e>NewDecoder</span>(<span style=color:#a6e22e>r</span>.<span style=color:#a6e22e>Body</span>).<span style=color:#a6e22e>Decode</span>(<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>creds</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#75715e>// 如果body错误返回http错误
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusBadRequest</span>)
+		<span style=color:#66d9ef>return</span>
+	}
+
+	<span style=color:#75715e>// 从内存中获取期望的密码
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>expectedPassword</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>users</span>[<span style=color:#a6e22e>creds</span>.<span style=color:#a6e22e>Username</span>]
+
+    <span style=color:#75715e>// 如果给定的用户存在一个密码并且它与我们收到的密码相同，我们可以继续前进，如果不是，那么我们返回一个 &#34;未授权 &#34;状态。
+</span><span style=color:#75715e></span>	<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> <span style=color:#f92672>||</span> <span style=color:#a6e22e>expectedPassword</span> <span style=color:#f92672>!=</span> <span style=color:#a6e22e>creds</span>.<span style=color:#a6e22e>Password</span> {
+		<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusUnauthorized</span>)
+		<span style=color:#66d9ef>return</span>
+	}
+
+	<span style=color:#75715e>// 在这里声明到期时间，我们将其保留为5分钟。
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>expirationTime</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Now</span>().<span style=color:#a6e22e>Add</span>(<span style=color:#ae81ff>5</span> <span style=color:#f92672>*</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Minute</span>)
+    <span style=color:#75715e>// 创建JWT Claims，其中包括用户名和到期时间。
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>claims</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>Claims</span>{
+		<span style=color:#a6e22e>Username</span>: <span style=color:#a6e22e>creds</span>.<span style=color:#a6e22e>Username</span>,
+		<span style=color:#a6e22e>StandardClaims</span>: <span style=color:#a6e22e>jwt</span>.<span style=color:#a6e22e>StandardClaims</span>{
+			<span style=color:#75715e>// 在JWT中，到期时间用unix毫秒表示。
+</span><span style=color:#75715e></span>			<span style=color:#a6e22e>ExpiresAt</span>: <span style=color:#a6e22e>expirationTime</span>.<span style=color:#a6e22e>Unix</span>(),
+		},
+	}
+
+    <span style=color:#75715e>// 通过签名算法和claims创建token(未经过hash的JWT,可以理解成header+payload)。
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>token</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>jwt</span>.<span style=color:#a6e22e>NewWithClaims</span>(<span style=color:#a6e22e>jwt</span>.<span style=color:#a6e22e>SigningMethodHS256</span>, <span style=color:#a6e22e>claims</span>)
+	<span style=color:#75715e>// 生成的JWT 
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>tokenString</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>token</span>.<span style=color:#a6e22e>SignedString</span>(<span style=color:#a6e22e>jwtKey</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#75715e>// 如果在创建JWT时出现错误，则返回一个内部服务器错误。
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusInternalServerError</span>)
+		<span style=color:#66d9ef>return</span>
+	}
+
+	<span style=color:#75715e>// 最后，我们将 &#34;token &#34;的客户端cookie设置为我们刚刚生成的JWT。
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 我们还设置了一个到期时间，这个到期时间和令牌本身是一样的
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>SetCookie</span>(<span style=color:#a6e22e>w</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>Cookie</span>{
+		<span style=color:#a6e22e>Name</span>:    <span style=color:#e6db74>&#34;token&#34;</span>,
+		<span style=color:#a6e22e>Value</span>:   <span style=color:#a6e22e>tokenString</span>,
+		<span style=color:#a6e22e>Expires</span>: <span style=color:#a6e22e>expirationTime</span>,
+	})
+}
+</code></pre></td></tr></table></div></div><p>如果用户用正确的凭证登录，该处理程序将在客户端设置一个带有JWT值的cookie。一旦在客户端上设置了cookie，它就会随着每一个请求一起发送。现在我们可以编写我们的欢迎处理程序来处理用户的特定信息。</p><h3 id=处理认证后的路由>处理认证后的路由</h3><p>现在，所有已登录的客户端都将会话信息以cookie的形式存储在他们的终端，我们可以用它来。</p><ol><li>验证后续的用户请求</li><li>获取提出请求的用户的信息</li></ol><p>让我们写下我们的<code>Welcome</code>处理程序来实现这一点。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">18
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">19
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">20
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">21
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">22
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">23
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">24
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">25
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">26
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">27
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">28
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">29
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">30
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">31
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">32
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">33
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">34
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">35
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">36
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">37
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">38
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">39
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">40
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Welcome</span>(<span style=color:#a6e22e>w</span> <span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>ResponseWriter</span>, <span style=color:#a6e22e>r</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>Request</span>) {
+	<span style=color:#75715e>// 我们可以从每次请求时的请求cookie中获取会话令牌。
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>c</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>r</span>.<span style=color:#a6e22e>Cookie</span>(<span style=color:#e6db74>&#34;token&#34;</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>ErrNoCookie</span> {
+			<span style=color:#75715e>// 如果cookie没有被设置，则返回一个未经授权的状态。
+</span><span style=color:#75715e></span>			<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusUnauthorized</span>)
+			<span style=color:#66d9ef>return</span>
+		}
+		<span style=color:#75715e>// 对于任何其他类型的错误，返回一个坏的请求状态。
+</span><span style=color:#75715e></span>		<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusBadRequest</span>)
+		<span style=color:#66d9ef>return</span>
+	}
+
+	<span style=color:#75715e>// 从cookie中获取JWT字符串
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>tknStr</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>Value</span>
+
+	<span style=color:#75715e>// 初始化一个新的 &#34;Claims &#34;实例。
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>claims</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>Claims</span>{}
+
+	<span style=color:#75715e>// 解析JWT字符串，并将结果存储在`claims`.注意，我们在这个方法中也传递了密钥。如果token无效（如果根据我们在登录时设置的到期时间，它已经过期了），或者如果签名不匹配，这个方法将返回一个错误。
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>tkn</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>jwt</span>.<span style=color:#a6e22e>ParseWithClaims</span>(<span style=color:#a6e22e>tknStr</span>, <span style=color:#a6e22e>claims</span>, <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>token</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>jwt</span>.<span style=color:#a6e22e>Token</span>) (<span style=color:#66d9ef>interface</span>{}, <span style=color:#66d9ef>error</span>) {
+		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>jwtKey</span>, <span style=color:#66d9ef>nil</span>
+	})
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>jwt</span>.<span style=color:#a6e22e>ErrSignatureInvalid</span> {
+			<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusUnauthorized</span>)
+			<span style=color:#66d9ef>return</span>
+		}
+		<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusBadRequest</span>)
+		<span style=color:#66d9ef>return</span>
+	}
+	<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>tkn</span>.<span style=color:#a6e22e>Valid</span> {
+		<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusUnauthorized</span>)
+		<span style=color:#66d9ef>return</span>
+	}
+
+	<span style=color:#75715e>// 最后，向用户返回欢迎信息，以及用户在token中给出的用户名。
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>Write</span>([]byte(<span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Sprintf</span>(<span style=color:#e6db74>&#34;Welcome %s!&#34;</span>, <span style=color:#a6e22e>claims</span>.<span style=color:#a6e22e>Username</span>)))
+}
+</code></pre></td></tr></table></div></div><h3 id=续签您的令牌>续签您的令牌</h3><p>在这个例子中，我们设置了一个很短的过期时间，即5分钟。如果用户的token过期，用户就需要每五分钟登录一次。为了解决这个问题，我们将创建另一个<code>/refresh</code>路由，该路由使用之前的令牌（仍然有效），并返回一个更新过期时间的新令牌。</p><blockquote><p>为了最大限度地减少对JWT的误用，过期时间通常保持在几分钟左右。通常情况下，客户端应用程序会在后台刷新令牌。</p></blockquote><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">18
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">19
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">20
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">21
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">22
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">23
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">24
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">25
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">26
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">27
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">28
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">29
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">30
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">31
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">32
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">33
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">34
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">35
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">36
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">37
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">38
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">39
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">40
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">41
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">42
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">43
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">44
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">45
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">46
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">47
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">48
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">49
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">50
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">51
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">52
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">53
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Refresh</span>(<span style=color:#a6e22e>w</span> <span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>ResponseWriter</span>, <span style=color:#a6e22e>r</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>Request</span>) {
+	<span style=color:#75715e>// (BEGIN)到此为止的代码与 &#34;Welcome &#34;路径的第一部分相同。
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>c</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>r</span>.<span style=color:#a6e22e>Cookie</span>(<span style=color:#e6db74>&#34;token&#34;</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>ErrNoCookie</span> {
+			<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusUnauthorized</span>)
+			<span style=color:#66d9ef>return</span>
+		}
+		<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusBadRequest</span>)
+		<span style=color:#66d9ef>return</span>
+	}
+	<span style=color:#a6e22e>tknStr</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>c</span>.<span style=color:#a6e22e>Value</span>
+	<span style=color:#a6e22e>claims</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>Claims</span>{}
+	<span style=color:#a6e22e>tkn</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>jwt</span>.<span style=color:#a6e22e>ParseWithClaims</span>(<span style=color:#a6e22e>tknStr</span>, <span style=color:#a6e22e>claims</span>, <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>token</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>jwt</span>.<span style=color:#a6e22e>Token</span>) (<span style=color:#66d9ef>interface</span>{}, <span style=color:#66d9ef>error</span>) {
+		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>jwtKey</span>, <span style=color:#66d9ef>nil</span>
+	})
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>jwt</span>.<span style=color:#a6e22e>ErrSignatureInvalid</span> {
+			<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusUnauthorized</span>)
+			<span style=color:#66d9ef>return</span>
+		}
+		<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusBadRequest</span>)
+		<span style=color:#66d9ef>return</span>
+	}
+	<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>tkn</span>.<span style=color:#a6e22e>Valid</span> {
+		<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusUnauthorized</span>)
+		<span style=color:#66d9ef>return</span>
+	}
+	<span style=color:#75715e>// (END)到此为止的代码与 &#34;Welcome &#34;路径的第一部分相同。
+</span><span style=color:#75715e></span>
+	<span style=color:#75715e>// 我们确保在足够的时间内才会发出新的令牌。否则，返回一个坏的请求状态
+</span><span style=color:#75715e></span>	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Unix</span>(<span style=color:#a6e22e>claims</span>.<span style=color:#a6e22e>ExpiresAt</span>, <span style=color:#ae81ff>0</span>).<span style=color:#a6e22e>Sub</span>(<span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Now</span>()) &gt; <span style=color:#ae81ff>30</span><span style=color:#f92672>*</span><span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Second</span> {
+		<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusBadRequest</span>)
+		<span style=color:#66d9ef>return</span>
+	}
+
+	<span style=color:#75715e>// 现在，为当前用途创建一个新的令牌，并更新到期时间。
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>expirationTime</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Now</span>().<span style=color:#a6e22e>Add</span>(<span style=color:#ae81ff>5</span> <span style=color:#f92672>*</span> <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Minute</span>)
+	<span style=color:#a6e22e>claims</span>.<span style=color:#a6e22e>ExpiresAt</span> = <span style=color:#a6e22e>expirationTime</span>.<span style=color:#a6e22e>Unix</span>()
+	<span style=color:#a6e22e>token</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>jwt</span>.<span style=color:#a6e22e>NewWithClaims</span>(<span style=color:#a6e22e>jwt</span>.<span style=color:#a6e22e>SigningMethodHS256</span>, <span style=color:#a6e22e>claims</span>)
+	<span style=color:#a6e22e>tokenString</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>token</span>.<span style=color:#a6e22e>SignedString</span>(<span style=color:#a6e22e>jwtKey</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#a6e22e>w</span>.<span style=color:#a6e22e>WriteHeader</span>(<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>StatusInternalServerError</span>)
+		<span style=color:#66d9ef>return</span>
+	}
+
+	<span style=color:#75715e>// 将新的token设置为用户的`token`cookie。
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>SetCookie</span>(<span style=color:#a6e22e>w</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>http</span>.<span style=color:#a6e22e>Cookie</span>{
+		<span style=color:#a6e22e>Name</span>:    <span style=color:#e6db74>&#34;token&#34;</span>,
+		<span style=color:#a6e22e>Value</span>:   <span style=color:#a6e22e>tokenString</span>,
+		<span style=color:#a6e22e>Expires</span>: <span style=color:#a6e22e>expirationTime</span>,
+	})
+}
+</code></pre></td></tr></table></div></div><h3 id=运行我们的应用程序>运行我们的应用程序</h3><p>要运行此应用程序，请构建并运行Go二进制文件。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>go build
+./jwt-go-example。
+</code></pre></td></tr></table></div></div><p>现在，使用任何支持cookie的HTTP客户端（如Postman，或你的网络浏览器），用适当的凭证发出登录请求。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ curl -i -X POST -H <span style=color:#e6db74>&#39;Content-Type: application/json&#39;</span> -d <span style=color:#e6db74>&#39;{&#34;username&#34;:&#34;user1&#34;,&#34;password&#34;:&#34;password1&#34;}&#39;</span>  http://127.0.0.1:8000/signin                              
+HTTP/1.1 <span style=color:#ae81ff>200</span> OK
+Set-Cookie: token<span style=color:#f92672>=</span>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIxIiwiZXhwIjoxNjE4MzI2NjY0fQ.T2w0b2HLtHyytEmGxvbWKk4grjoyIEsDvKAlNhKOP4o; Expires<span style=color:#f92672>=</span>Sun, <span style=color:#ae81ff>13</span> Oct <span style=color:#ae81ff>2019</span> 13:03:31 GMT
+Date: Sun, <span style=color:#ae81ff>13</span> Oct <span style=color:#ae81ff>2019</span> 12:58:31 GMT
+Content-Length: <span style=color:#ae81ff>12</span>
+Content-Type: text/plain; charset<span style=color:#f92672>=</span>utf-8
+</code></pre></td></tr></table></div></div><p>现在你可以尝试从同一个客户端打出欢迎路径，来获取欢迎信息。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ curl -i -X GET -b <span style=color:#e6db74>&#34;token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIxIiwiZXhwIjoxNjE4MzI2NjY0fQ.T2w0b2HLtHyytEmGxvbWKk4grjoyIEsDvKAlNhKOP4o; Expires=Sun, 13 Oct 2019 15:11:04 GMT&#34;</span>  http://127.0.0.1:8000/welcome
+HTTP/1.1 <span style=color:#ae81ff>200</span> OK
+Date: Tue, <span style=color:#ae81ff>13</span> Apr <span style=color:#ae81ff>2021</span> 15:08:01 GMT
+Content-Length: <span style=color:#ae81ff>14</span>
+Content-Type: text/plain; charset<span style=color:#f92672>=</span>utf-8
+
+Welcome user1!
+</code></pre></td></tr></table></div></div><p>点击刷新路径，然后检查客户端cookie，查看token cookie的新值。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ curl -i -X POST -b <span style=color:#e6db74>&#34;token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIxIiwiZXhwIjoxNjE4MzI2NjY0fQ.T2w0b2HLtHyytEmGxvbWKk4grjoyIEsDvKAlNhKOP4o; Expires=Sun, 13 Oct 2019 15:11:04 GMT&#34;</span>  http://127.0.0.1:8000/refresh
+HTTP/1.1 <span style=color:#ae81ff>200</span> OK
+Set-Cookie: session_token<span style=color:#f92672>=</span>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIxIiwiZXhwIjoxNjE4MzI2OTUzfQ.Nya_cQMX4KsKk7J39F0Cv1KvK4AGgvpfKTSd8DyqUaY; Expires<span style=color:#f92672>=</span>Tue, <span style=color:#ae81ff>13</span> Apr <span style=color:#ae81ff>2021</span> 15:15:53 GMT
+Date: Tue, <span style=color:#ae81ff>13</span> Apr <span style=color:#ae81ff>2021</span> 15:10:53 GMT
+Content-Length: <span style=color:#ae81ff>0</span>
+</code></pre></td></tr></table></div></div></div><div class=post-archive><h2>See Also</h2><ul class=listing><li><a href=/post/OPS/rsync/>Rsync</a></li><li><a href=/post/OPS/svn/>SVN</a></li><li><a href=/post/OPS/LinuxCommand/>Linux Commands</a></li><li><a href=/archives/>归档</a></li><li><a href=/search/>搜索</a></li></ul></div><div class="post-meta meta-tags"><ul class=clearfix><li><a href=/tags/JWT>JWT</a></li></ul></div></article><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return}var b=document,a=b.createElement('script');a.async=!0,a.src='//linux88.disqus.com/embed.js',a.setAttribute('data-timestamp',+new Date),(b.head||b.body).appendChild(a)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><footer id=footer><div>&copy; 2021 <a href=https://blog.linux88.com>Kira's blog By Kira</a></div><br><div><div class=github-badge><a href=https://gohugo.io/ target=_black rel=nofollow><span class=badge-subject>Powered by</span><span class="badge-value bg-blue">Hugo</span></a></div><div class=github-badge><a href=https://www.flysnow.org/ target=_black><span class=badge-subject>Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a></div><div class=github-badge><a href=https://github.com/flysnow-org/maupassant-hugo target=_black><span class=badge-subject>Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a></div></div></footer><script type=text/javascript>window.MathJax={tex2jax:{inlineMath:[['$','$']],processEscapes:!0}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script><a id=rocket href=#top></a><script type=text/javascript src="/js/totop.js?v=0.0.0" async></script><script type=application/javascript>var doNotTrack=!1;doNotTrack||(window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga('create','G-BRM0F3S7ZK','auto'),ga('send','pageview'))</script><script async src=https://www.google-analytics.com/analytics.js></script><script type=text/javascript src=//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js async></script></div><div id=secondary><section class=widget><form id=search action=https://blog.linux88.com/search/ method=get accept-charset=utf-8 target=_blank _lpchecked=1><input type=text name=q maxlength=20 placeholder=Search>
+<input type=hidden name=sitesearch value=https://blog.linux88.com>
+<button type=submit class="submit icon-search"></button></form></section><section class=widget><h3 class=widget-title>最近文章</h3><ul class=widget-list><li><a href=https://blog.linux88.com/post/Go/testing-with-gomock/ title="Testing With Gomock">Testing With Gomock</a></li><li><a href=https://blog.linux88.com/post/Go/embed/ title=Embed>Embed</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%91%BD%E4%BB%A4/ title=Kafka命令>Kafka命令</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%8F%82%E6%95%B0/ title=Kafka参数>Kafka参数</a></li><li><a href=https://blog.linux88.com/post/Go/Contexts-and-structs/ title="Contexts and structs">Contexts and structs</a></li><li><a href=https://blog.linux88.com/post/OPS/Disable_Transparent_Huge_Pages/ title="Disable Transparent Huge Pages (THP)">Disable Transparent Huge Pages (THP)</a></li><li><a href=https://blog.linux88.com/post/Go/Garbage-Collection-Semantics/ title="Garbage Collection Semantics">Garbage Collection Semantics</a></li><li><a href=https://blog.linux88.com/post/OPS/Google-Doc-%E5%87%A0%E4%B8%AA%E5%B0%8F%E6%8A%80%E5%B7%A7/ title="Google Doc 几个小技巧">Google Doc 几个小技巧</a></li><li><a href=https://blog.linux88.com/post/IDE/Goland%E5%BF%AB%E6%8D%B7%E9%94%AE/ title=Goland快捷键>Goland快捷键</a></li><li><a href=https://blog.linux88.com/post/Go/unsafe/ title=Unsafe>Unsafe</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/categories/>分类</a></h3><ul class=widget-list><li><a href=https://blog.linux88.com/categories/GCP/>GCP (1)</a></li><li><a href=https://blog.linux88.com/categories/Git/>Git (1)</a></li><li><a href=https://blog.linux88.com/categories/Go/>Go (27)</a></li><li><a href=https://blog.linux88.com/categories/HTTP/>HTTP (1)</a></li><li><a href=https://blog.linux88.com/categories/IDE/>IDE (2)</a></li><li><a href=https://blog.linux88.com/categories/OPS/>OPS (11)</a></li><li><a href=https://blog.linux88.com/categories/PHP/>PHP (1)</a></li><li><a href=https://blog.linux88.com/categories/Python/>Python (1)</a></li><li><a href=https://blog.linux88.com/categories/RPC/>RPC (1)</a></li><li><a href=https://blog.linux88.com/categories/kafka/>kafka (2)</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/tags/>标签</a></h3><div class=tagcloud><a href=https://blog.linux88.com/tags/BASH/>BASH</a>
+<a href=https://blog.linux88.com/tags/Docker/>Docker</a>
+<a href=https://blog.linux88.com/tags/GCE/>GCE</a>
+<a href=https://blog.linux88.com/tags/Git/>Git</a>
+<a href=https://blog.linux88.com/tags/Go/>Go</a>
+<a href=https://blog.linux88.com/tags/Goland/>Goland</a>
+<a href=https://blog.linux88.com/tags/Google-Doc/>Google Doc</a>
+<a href=https://blog.linux88.com/tags/HTTP/>HTTP</a>
+<a href=https://blog.linux88.com/tags/JSON/>JSON</a>
+<a href=https://blog.linux88.com/tags/JWT/>JWT</a>
+<a href=https://blog.linux88.com/tags/Kubernetes/>Kubernetes</a>
+<a href=https://blog.linux88.com/tags/Linux/>Linux</a>
+<a href=https://blog.linux88.com/tags/PHP/>PHP</a>
+<a href=https://blog.linux88.com/tags/PicGo-Core/>PicGo-Core</a>
+<a href=https://blog.linux88.com/tags/Python/>Python</a>
+<a href=https://blog.linux88.com/tags/RPC/>RPC</a>
+<a href=https://blog.linux88.com/tags/Remmina/>Remmina</a>
+<a href=https://blog.linux88.com/tags/Rsync/>Rsync</a>
+<a href=https://blog.linux88.com/tags/SVN/>SVN</a>
+<a href=https://blog.linux88.com/tags/Typora/>Typora</a>
+<a href=https://blog.linux88.com/tags/UFW/>UFW</a>
+<a href=https://blog.linux88.com/tags/Viper/>Viper</a>
+<a href=https://blog.linux88.com/tags/dlv/>dlv</a>
+<a href=https://blog.linux88.com/tags/gRPC/>gRPC</a>
+<a href=https://blog.linux88.com/tags/kafka/>kafka</a>
+<a href=https://blog.linux88.com/tags/wire/>wire</a>
+<a href=https://blog.linux88.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/>设计模式</a></div></section><section class=widget><h3 class=widget-title>其它</h3><ul class=widget-list><li><a href=https://blog.linux88.com/index.xml>文章 RSS</a></li></ul></section></div></div></div></div></body></html>

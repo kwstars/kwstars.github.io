@@ -1,0 +1,420 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=referrer content="no-referrer-when-downgrade"><title>精通Wire | Kira's blog</title><meta property="og:title" content="精通Wire - Kira's blog"><meta property="og:type" content="article"><meta property="article:published_time" content="2020-10-14T20:25:05+08:00"><meta property="article:modified_time" content="2020-10-14T20:25:05+08:00"><meta name=Keywords content="golang,go语言,go语言笔记,博客,python"><meta name=description content="精通Wire"><meta name=author content="Kira"><meta property="og:url" content="https://blog.linux88.com/post/Go/%E7%B2%BE%E9%80%9AWire/"><link rel="shortcut icon" href=/favicon.ico type=image/x-icon><link rel=stylesheet href=/css/normalize.css><link rel=stylesheet href=/css/style.css><script type=text/javascript src=//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js></script></head><body><header id=header class=clearfix><div class=container><div class=col-group><div class=site-name><a id=logo href=https://blog.linux88.com>Kira's blog</a><p class=description>随笔</p></div><div><nav id=nav-menu class=clearfix><a class=current href=https://blog.linux88.com>首页</a>
+<a href=https://blog.linux88.com/archives/ title=归档>归档</a></nav></div></div></div></header><div id=body><div class=container><div class=col-group><div class=col-8 id=main><div class=res-cons><style type=text/css>.post-toc{position:fixed;width:200px;margin-left:-260px;padding:5px 10px;font-family:Athelas,STHeiti,Microsoft Yahei,serif;font-size:12px;border:1px solid rgba(0,0,0,7%);border-radius:5px;background-color:rgba(255,255,255,.98);background-clip:padding-box;-webkit-box-shadow:1px 1px 2px rgba(0,0,0,.125);box-shadow:1px 1px 2px rgba(0,0,0,.125);word-wrap:break-word;white-space:nowrap;-webkit-box-sizing:border-box;box-sizing:border-box;z-index:999;cursor:pointer;max-height:70%;overflow-y:auto;overflow-x:hidden}.post-toc .post-toc-title{width:100%;margin:0 auto;font-size:20px;font-weight:400;text-transform:uppercase;text-align:center}.post-toc .post-toc-content{font-size:15px}.post-toc .post-toc-content>nav>ul{margin:10px 0}.post-toc .post-toc-content ul{padding-left:5px;list-style:square;margin:.5em;line-height:1.8em}@media print,screen and (max-width:1057px){.post-toc{display:none}}</style><div class=post-toc style=position:absolute;top:188px><h2 class=post-toc-title>文章目录</h2><div class=post-toc-content><nav id=TableOfContents><ul><li><a href=#wire是什么->wire是什么 ？</a></li><li><a href=#wire与其它依赖注入工具有什么不同->Wire与其它依赖注入工具有什么不同 ?</a></li><li><a href=#getting-started>Getting Started</a></li><li><a href=#高级功能>高级功能</a><ul><li><a href=#binding-interfaces>Binding Interfaces</a></li><li><a href=#struct-providers>Struct Providers</a></li><li><a href=#binding-values>Binding Values</a></li><li><a href=#use-fields-of-a-struct-as-providers>Use Fields of a Struct as Providers</a></li><li><a href=#cleanup-functions>Cleanup functions</a></li></ul></li></ul></nav></div></div><script type=text/javascript>$(document).ready(function(){var a=$(".post-toc"),b,c,d;a.length&&(b=$("#main").offset().left,b<220&&a.css({width:b-10,"margin-left":0-b}),c=a.offset().top-20,d={start:{position:"absolute",top:c},process:{position:"fixed",top:20}},$(window).scroll(function(){var b=$(window).scrollTop();b<c?a.css(d.start):a.css(d.process)}))})</script><article class=post><header><h1 class=post-title>精通Wire</h1></header><date class="post-meta meta-date">2020年10月14日</date><div class=post-meta><span>|</span>
+<span class=meta-category><a href=/categories/Go>Go</a></span></div><div class=post-meta><span id=busuanzi_container_page_pv>|<span id=busuanzi_value_page_pv></span><span>
+阅读</span></span></div><div class=post-content><h2 id=wire是什么->wire是什么 ？</h2><p><a href=https://github.com/google/wire>Wire</a>是Go Cloud团队开发的Golang中的轻量级依赖注入工具。它会自动生成代码，然后在编译时注入依赖项。</p><p><a href=https://en.wikipedia.org/wiki/Dependency_injection>依赖注入</a>是保持软件“loose-coupling and easy to maintain（松耦合且易于维护）”的最重要的设计原则之一。</p><p>该原理已在所有类型的开发平台中广泛使用，并且有许多与之相关的出色工具。</p><p>在所有这些工具中，最著名的是Spring和Spring IOC，该框架的基础对其今天的主导地位起着决定性作用。</p><p>实际上，<a href=https://en.wikipedia.org/wiki/SOLID>S.O.L.I.D</a>软件开发原则中的“ D”是专门针对此主题的。</p><h2 id=wire与其它依赖注入工具有什么不同->Wire与其它依赖注入工具有什么不同 ?</h2><p>依赖注入是如此重要，以至于Golang社区中已经有很多解决方案，例如从Uber的<a href=https://github.com/uber-go/dig>dig</a>和从Facebook的<a href=https://github.com/facebookgo/inject>inject</a>。它们都通过<a href=https://golang.org/pkg/reflect/>反射机制</a>实现了运行时依赖项注入。</p><p>Go Cloud团队为什么要彻底改变方向？因为他们认为上述所有库都不符合Go的哲学：</p><blockquote><p><a href="https://www.youtube.com/watch?v=PAAkCSZUG1c&t=14m35s"><em>Clear is better than clever</em></a> <em>，</em><a href="https://www.youtube.com/watch?v=PAAkCSZUG1c&t=15m22s"><em>Reflection is never clear.</em></a> 清晰胜于巧妙，反射永远不会清晰。
+— Rob Pike</p></blockquote><p>作为代码生成工具，Wire可以生成源代码并在编译时实现依赖项注入。它不需要反射或<a href=https://en.wikipedia.org/wiki/Service_locator_pattern>Service Locators</a>。如您将在后面看到的，Wire生成的代码与手工编写的代码没有区别。这种方法带来一些好处：</p><ol><li>轻松调试。如果缺少任何依赖项，则在编译过程中将报告错误</li><li>由于不需要service locators，因此对命名没有特殊要求</li><li>避免依赖膨胀。生成的代码将仅导入您需要的依赖项，而运行时依赖项注入直到运行时才能识别未使用的依赖项。</li><li>依赖图静态存储在源代码中，这使得工具和可视化变得更加容易</li></ol><p>有关设计Wire的详细折衷方法，请访问<a href=https://blog.golang.org/wire>Go Blog</a>。</p><p>尽管Wire的最新版本仅为v0.4.0，但它已经达到了团队设定的目标并且相当成熟。预计将来不会有重大变化。从团队的声明中可以看出：</p><blockquote><p>It works well for the tasks it was designed to perform, and we prefer to keep it as simple as possible._
+We’ll not be accepting new features at this time, but will gladly accept bug reports and fixes._
+—<a href=https://github.com/google/wire#project-status><em>Wire team</em></a></p></blockquote><h2 id=getting-started>Getting Started</h2><p>安装wire非常容易，只需运行</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>go get github.com/google/wire/cmd/wire
+</code></pre></td></tr></table></div></div><p>您将在<code>$GOPATH/bin</code>上安装Wire命令行工具，确保<code>$GOPATH/bin</code>在<code>$PATH</code>中，然后可以在任何目录下运行wire。</p><p>在继续之前，我们需要在Wire中解释两个核心概念：<strong>Provider</strong>和<strong>Injector</strong>。</p><p><strong>Provider</strong>：用于创建组件的普通函数。这些方法将所需的依赖项作为参数，创建一个组件并返回它。
+组件可以是对象或函数，实际上它可以是任何类型。唯一的限制是：one type can only have a single provider in the entire dependency graph。因此，返回<code>int</code>的提供程序不是一个好主意。在这种情况下，您可以通过定义类型别名来解决它。例如，首先定义<code>type Category int</code>，然后让提供者返回<code>Category</code>类型</p><p>以下是典型的provider示例：</p><pre><code>// DefaultConnectionOpt provide default connection option
+func DefaultConnectionOpt()*ConnectionOpt{...}
+// NewDb provide an Db object
+func NewDb(opt *ConnectionOpt)(*Db, error){...}
+// NewUserLoadFunc provide a function which can load user
+func NewUserLoadFunc(db *Db)(func(int) *User, error){...}
+</code></pre><p>实际上，通常将一组相关的提供程序放在一起并组织到ProviderSet中，以方便维护和切换。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>DbSet</span> = <span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>NewSet</span>(<span style=color:#a6e22e>DefaultConnectionOpt</span>, <span style=color:#a6e22e>NewDb</span>)
+</code></pre></td></tr></table></div></div><p><strong>Injector</strong>：由wire生成的函数，以依赖关系顺序调用提供程序。
+为了生成injector，我们在<code>wire.go</code>中定义了 the injector function signature （文件名不是必需的，但通常是这种情况）。然后调用<code>wire.build</code> in the function body with provider as parameter （与顺序无关）。</p><p>由于<code>wire.go</code>中的函数并未真正返回值，因此为了避免编译器错误，只需简单的用<code>panic</code>包裹他们。不用担心运行时错误，因为它实际上不会执行，所以只是生成实际代码的提示。一个简单的wire.go示例：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// +build wireinject
+</span><span style=color:#75715e></span>
+<span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;github.com/google/wire&#34;</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>UserLoader</span>()(<span style=color:#66d9ef>func</span>(<span style=color:#66d9ef>int</span>)<span style=color:#f92672>*</span><span style=color:#a6e22e>User</span>, <span style=color:#66d9ef>error</span>){
+   panic(<span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>NewUserLoadFunc</span>, <span style=color:#a6e22e>DbSet</span>))
+}
+
+<span style=color:#66d9ef>var</span> <span style=color:#a6e22e>DbSet</span> = <span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>NewSet</span>(<span style=color:#a6e22e>DefaultConnectionOpt</span>, <span style=color:#a6e22e>NewDb</span>)
+</code></pre></td></tr></table></div></div><p>完成此代码后，运行命令行<code>wire</code>将生成文件<code>wire_gen.go</code>，其中包含 injector function 的实现。 wire.go中的任何非注入器代码都将照原样复制到wire_gen.go（尽管在技术上允许，但不建议这样做）。生成的代码如下：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">18
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">19
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">20
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">21
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">22
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">23
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">24
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">25
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">26
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">27
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// Code generated by Wire. DO NOT EDIT.
+</span><span style=color:#75715e></span>
+<span style=color:#75715e>//go:generate wire
+</span><span style=color:#75715e>//+build !wireinject
+</span><span style=color:#75715e></span>
+<span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+   <span style=color:#e6db74>&#34;github.com/google/wire&#34;</span>
+)
+
+<span style=color:#75715e>// Injectors from wire.go:
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>UserLoader</span>() (<span style=color:#66d9ef>func</span>(<span style=color:#66d9ef>int</span>) <span style=color:#f92672>*</span><span style=color:#a6e22e>User</span>, <span style=color:#66d9ef>error</span>) {
+   <span style=color:#a6e22e>connectionOpt</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>DefaultConnectionOpt</span>()
+   <span style=color:#a6e22e>db</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewDb</span>(<span style=color:#a6e22e>connectionOpt</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+   }
+   <span style=color:#a6e22e>v</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewUserLoadFunc</span>(<span style=color:#a6e22e>db</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+   }
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>v</span>, <span style=color:#66d9ef>nil</span>
+}
+
+<span style=color:#75715e>// wire.go:
+</span><span style=color:#75715e></span><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>DbSet</span> = <span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>NewSet</span>(<span style=color:#a6e22e>DefaultConnectionOpt</span>, <span style=color:#a6e22e>NewDb</span>)
+</code></pre></td></tr></table></div></div><p>上面的代码有两个有趣的地方：</p><ol><li><code>wire.go</code> 的第一行<code>//+build wireinject</code>，此构建标记可确保在常规编译期间忽略wire.go文件（因为在常规编译期间未指定wireinject标记）。与之相反，<code>wire_gen.go</code>的第四行<code>//+build! Wireinject</code>。这两套相对的构建标记可确保在任何情况下，wire.go和wire_gen.go文件只有一个生效，避免了编译错误“function UserLoader has been defined”</li><li>自动生成的函数<code>UserLoader</code>包含错误处理。它几乎与手写代码相同。对于这样一个简单的初始化过程，手写是可以接受的，但是当组件的数量达到数十，数百甚至更多时，将显示出自动生成的优点。</li></ol><p>有两种方法可以触发“生成”操作：<code>go generate</code>或<code>wire</code>。</p><p>前者仅在<strong>wire_gen.go</strong>已经存在的情况下才有效（因为<strong>wire_gen.go</strong>的第三行<code>//go:generate wire</code>）。</p><p>虽然后者可以随时执行。后者支持更多参数来微调生成行为，因此建议始终使用<code>wire</code>命令。</p><p>然后我们可以使用real injector，例如：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;log&#34;</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+   <span style=color:#a6e22e>fn</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>UserLoader</span>()
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Fatal</span>(<span style=color:#a6e22e>err</span>)
+   }
+   <span style=color:#a6e22e>user</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>fn</span>(<span style=color:#ae81ff>123</span>)
+   <span style=color:#f92672>...</span>
+}
+</code></pre></td></tr></table></div></div><p>如果您不小心忘记了a certain provider，wire将报告特定错误，以帮助开发人员快速解决问题。例如，我们修改<strong>wire.go</strong>以删除<code>NewDb</code></p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// +build wireinject
+</span><span style=color:#75715e></span>
+<span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;github.com/google/wire&#34;</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>UserLoader</span>()(<span style=color:#66d9ef>func</span>(<span style=color:#66d9ef>int</span>)<span style=color:#f92672>*</span><span style=color:#a6e22e>User</span>, <span style=color:#66d9ef>error</span>){
+   panic(<span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>NewUserLoadFunc</span>, <span style=color:#a6e22e>DbSet</span>))
+}
+
+<span style=color:#66d9ef>var</span> <span style=color:#a6e22e>DbSet</span> = <span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>NewSet</span>(<span style=color:#a6e22e>DefaultConnectionOpt</span>) <span style=color:#75715e>//forgot add Db provider
+</span></code></pre></td></tr></table></div></div><p>执行<code>wire</code>命令，然后将报告一个显式错误：<code>“no provider found for * example.Db”</code></p><pre><code>wire: /usr/example/wire.go:7:1: inject UserLoader: no provider found for *example.Db
+needed by func(int) *example.User in provider &quot;NewUserLoadFunc&quot; (/usr/example/provider.go:24:6)
+wire: example: generate failed
+wire: at least one generate failure
+</code></pre><p>同样，如果在<code>wire.go</code>中编写了未使用的提供程序，则将出现明确的错误消息。</p><h2 id=高级功能>高级功能</h2><p>在讨论基本用法之后，让我们看一下高级功能</p><h3 id=binding-interfaces>Binding Interfaces</h3><p>有时我们需要注入一个接口。有两种选择：</p><ol><li>直接的方法是在provider中创建一个类，然后返回接口类型。但这不符合<a href=https://github.com/golang/go/wiki/CodeReviewComments#interfaces>Go最佳实践</a>。不建议</li><li>让provider返回类，然后在注入器中声明一个接口绑定，例如：</li></ol><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// FooInf, an interface
+</span><span style=color:#75715e>// FooClass, an class which implements FooInf
+</span><span style=color:#75715e>// fooClassProvider, a provider function that provider *FooClassvar
+</span><span style=color:#75715e></span><span style=color:#a6e22e>set</span> = <span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>NewSet</span>(
+    <span style=color:#a6e22e>fooClassProvider</span>,
+    <span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Bind</span>(new(<span style=color:#a6e22e>FooInf</span>), new(<span style=color:#f92672>*</span><span style=color:#a6e22e>FooClass</span>) <span style=color:#75715e>// bind class to interface
+</span><span style=color:#75715e></span>)
+</code></pre></td></tr></table></div></div><h3 id=struct-providers>Struct Providers</h3><p>有时我们不需要任何特定的初始化工作，我们只需创建一个struct实例，为指定的字段分配一个值，然后返回即可。当字段很多时，这种工作可能会很乏味。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// provider.go
+</span><span style=color:#75715e></span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>App</span> <span style=color:#66d9ef>struct</span> {
+    <span style=color:#a6e22e>Foo</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Foo</span>
+    <span style=color:#a6e22e>Bar</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Bar</span>
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>DefaultApp</span>(<span style=color:#a6e22e>foo</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Foo</span>, <span style=color:#a6e22e>bar</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Bar</span>)<span style=color:#f92672>*</span><span style=color:#a6e22e>App</span>{
+    <span style=color:#66d9ef>return</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>App</span>{<span style=color:#a6e22e>Foo</span>: <span style=color:#a6e22e>foo</span>, <span style=color:#a6e22e>Bar</span>: <span style=color:#a6e22e>bar</span>}
+}
+<span style=color:#75715e>// wire.go
+</span><span style=color:#75715e></span><span style=color:#f92672>...</span>
+<span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>provideFoo</span>, <span style=color:#a6e22e>provideBar</span>, <span style=color:#a6e22e>DefaultApp</span>)
+<span style=color:#f92672>...</span>
+</code></pre></td></tr></table></div></div><p>在这种情况下，wire.Struct可以通过指定字段名称来注入字段：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>provideFoo</span>, <span style=color:#a6e22e>provideBar</span>, <span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Struct</span>(new(<span style=color:#a6e22e>App</span>),<span style=color:#e6db74>&#34;Foo&#34;</span>,<span style=color:#e6db74>&#34;Bar&#34;</span>)
+</code></pre></td></tr></table></div></div><p>如果要注入所有字段，则有一种更简化的方法：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>provideFoo</span>, <span style=color:#a6e22e>provideBar</span>, <span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Struct</span>(new(<span style=color:#a6e22e>App</span>), <span style=color:#e6db74>&#34;*&#34;</span>)
+</code></pre></td></tr></table></div></div><p>如果要忽略结构中的某些字段，则可以修改结构定义：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>App</span> <span style=color:#66d9ef>struct</span> {
+    <span style=color:#a6e22e>Foo</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Foo</span>
+    <span style=color:#a6e22e>Bar</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>Bar</span>
+    <span style=color:#a6e22e>NoInject</span> <span style=color:#66d9ef>int</span> <span style=color:#e6db74>`wire:&#34;-&#34;`</span>
+}
+</code></pre></td></tr></table></div></div><p>然后<code>NoInject</code>将被忽略。与 regular providers 相比，<code>wire.Struct</code>提供了额外的灵活性：它可以适应指针和非指针类型，并根据需要自动调整生成的代码。</p><p>而<code>wire.Struct</code>确实提供了一些便利。但这要求注入的字段必须是可公开访问的，这会导致结构公开可能会隐藏的细节。</p><p>幸运的是，可以通过上述“绑定接口”解决此问题。使用<code>wire.Struct</code>构造一个对象并将类绑定到接口。至于如何在便利性和封装之间进行权衡，则取决于您的具体情况。</p><h3 id=binding-values>Binding Values</h3><p>有时您需要将值绑定到字段。在这种情况下，您可以使用<code>wire.Value</code>：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// provider.go
+</span><span style=color:#75715e></span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Foo</span> <span style=color:#66d9ef>struct</span> {
+    <span style=color:#a6e22e>X</span> <span style=color:#66d9ef>int</span>
+}<span style=color:#75715e>// wire.go
+</span><span style=color:#75715e></span><span style=color:#f92672>...</span>
+<span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Value</span>(<span style=color:#a6e22e>Foo</span>{<span style=color:#a6e22e>X</span>: <span style=color:#ae81ff>42</span>}))
+<span style=color:#f92672>...</span>
+</code></pre></td></tr></table></div></div><p>对于接口值，请使用<code>wire.InterfaceValue</code></p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>InterfaceValue</span>(new(<span style=color:#a6e22e>io</span>.<span style=color:#a6e22e>Reader</span>), <span style=color:#a6e22e>os</span>.<span style=color:#a6e22e>Stdin</span>))
+</code></pre></td></tr></table></div></div><h3 id=use-fields-of-a-struct-as-providers>Use Fields of a Struct as Providers</h3><p>有时我们需要使用结构的字段作为提供者，例如：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">8
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// provider
+</span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>provideBar</span>(<span style=color:#a6e22e>foo</span> <span style=color:#a6e22e>Foo</span>)<span style=color:#f92672>*</span><span style=color:#a6e22e>Bar</span>{
+    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>foo</span>.<span style=color:#a6e22e>Bar</span>
+}
+<span style=color:#75715e>// injector
+</span><span style=color:#75715e></span><span style=color:#f92672>...</span>
+<span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>provideFoo</span>, <span style=color:#a6e22e>provideBar</span>)
+<span style=color:#f92672>...</span>
+</code></pre></td></tr></table></div></div><p>在这种情况下，您可以使用<code>wire.FieldsOf</code>简化它，避免繁琐的提供程序定义：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(<span style=color:#a6e22e>provideFoo</span>, <span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>FieldsOf</span>(new(<span style=color:#a6e22e>Foo</span>), <span style=color:#960050;background-color:#1e0010>“</span><span style=color:#a6e22e>Bar</span><span style=color:#960050;background-color:#1e0010>”</span>))
+</code></pre></td></tr></table></div></div><p>与<code>wire.Struct</code>类似，<code>wire.FieldsOf</code>也可以自动适应指针/非指针注入请求</p><h3 id=cleanup-functions>Cleanup functions</h3><p>如前所述，如果provider and injector函数返回错误，Wire将自动处理它们。此外，Wire还具有另一种自动处理功能：cleanup functions。</p><p>所谓的cleanup function是指带有签名<code>func()</code>的闭包。它从提供程序返回以确保可以清除在提供程序中分配的资源。</p><p>cleanup function的典型应用场景是文件资源和网络连接资源管理，例如：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">18
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">19
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">20
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">21
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">22
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">23
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">24
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">25
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">26
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">27
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">28
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">29
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">30
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>App</span> <span style=color:#66d9ef>struct</span> {
+   <span style=color:#a6e22e>File</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>os</span>.<span style=color:#a6e22e>File</span>
+   <span style=color:#a6e22e>Conn</span> <span style=color:#a6e22e>net</span>.<span style=color:#a6e22e>Conn</span>
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>provideFile</span>() (<span style=color:#f92672>*</span><span style=color:#a6e22e>os</span>.<span style=color:#a6e22e>File</span>, <span style=color:#66d9ef>func</span>(), <span style=color:#66d9ef>error</span>) {
+   <span style=color:#a6e22e>f</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>os</span>.<span style=color:#a6e22e>Open</span>(<span style=color:#e6db74>&#34;foo.txt&#34;</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+   }
+   <span style=color:#a6e22e>cleanup</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>func</span>() {
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>Close</span>(); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+         <span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>err</span>)
+      }
+   }
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>f</span>, <span style=color:#a6e22e>cleanup</span>, <span style=color:#66d9ef>nil</span>
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>provideNetConn</span>() (<span style=color:#a6e22e>net</span>.<span style=color:#a6e22e>Conn</span>, <span style=color:#66d9ef>func</span>(), <span style=color:#66d9ef>error</span>) {
+   <span style=color:#a6e22e>conn</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>net</span>.<span style=color:#a6e22e>Dial</span>(<span style=color:#e6db74>&#34;tcp&#34;</span>, <span style=color:#e6db74>&#34;foo.com:80&#34;</span>)
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+   }
+   <span style=color:#a6e22e>cleanup</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>func</span>() {
+      <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>conn</span>.<span style=color:#a6e22e>Close</span>(); <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+         <span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>err</span>)
+      }
+   }
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>conn</span>, <span style=color:#a6e22e>cleanup</span>, <span style=color:#66d9ef>nil</span>
+}
+</code></pre></td></tr></table></div></div><p>上面的代码定义了两个提供程序，分别提供文件资源和网络连接资源。
+wire.go</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// +build wireinject
+</span><span style=color:#75715e></span>
+<span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;github.com/google/wire&#34;</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewApp</span>() (<span style=color:#f92672>*</span><span style=color:#a6e22e>App</span>, <span style=color:#66d9ef>func</span>(), <span style=color:#66d9ef>error</span>) {
+   panic(<span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Build</span>(
+      <span style=color:#a6e22e>provideFile</span>,
+      <span style=color:#a6e22e>provideNetConn</span>,
+      <span style=color:#a6e22e>wire</span>.<span style=color:#a6e22e>Struct</span>(new(<span style=color:#a6e22e>App</span>), <span style=color:#e6db74>&#34;*&#34;</span>),
+   ))
+}
+</code></pre></td></tr></table></div></div><p>请注意，因为提供程序返回了a cleanup function，所以注入器函数还必须返回它，否则将发生错误</p><p>wire_gen.go</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">18
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">19
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">20
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">21
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">22
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">23
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">24
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">25
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">26
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">27
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">28
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#75715e>// Code generated by Wire. DO NOT EDIT.
+</span><span style=color:#75715e></span>
+<span style=color:#75715e>//go:generate wire
+</span><span style=color:#75715e>//+build !wireinject
+</span><span style=color:#75715e></span>
+<span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#75715e>// Injectors from wire.go:
+</span><span style=color:#75715e></span>
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewApp</span>() (<span style=color:#f92672>*</span><span style=color:#a6e22e>App</span>, <span style=color:#66d9ef>func</span>(), <span style=color:#66d9ef>error</span>) {
+   <span style=color:#a6e22e>file</span>, <span style=color:#a6e22e>cleanup</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>provideFile</span>()
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+   }
+   <span style=color:#a6e22e>conn</span>, <span style=color:#a6e22e>cleanup2</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>provideNetConn</span>()
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#a6e22e>cleanup</span>()
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+   }
+   <span style=color:#a6e22e>app</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>App</span>{
+      <span style=color:#a6e22e>File</span>: <span style=color:#a6e22e>file</span>,
+      <span style=color:#a6e22e>Conn</span>: <span style=color:#a6e22e>conn</span>,
+   }
+   <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>app</span>, <span style=color:#66d9ef>func</span>() {
+      <span style=color:#a6e22e>cleanup2</span>()
+      <span style=color:#a6e22e>cleanup</span>()
+   }, <span style=color:#66d9ef>nil</span>
+}
+</code></pre></td></tr></table></div></div><p>生成的代码中有两点值得注意：</p><ol><li>当<code>ProvideNetConn</code>失败时将调用<code>cleanup()</code>，以确保后续处理错误不会影响先前分配的资源的清除。</li><li>返回的最终闭包自动组合<code>cleanup2()</code>和<code>cleanup()</code>。这意味着无论分配多少资源，只要调用过程成功，它们的清理工作都将在一个清理函数中进行处理。The caller of the injector will be responsible for the final cleanup</li></ol><p>可以想象，有很多 cleaning functions 组合在一起时，手动处理以上两个问题非常繁琐且容易出错。 Wire的优势再次得到体现。</p><p>然后我们可以使用它：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">8
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+   <span style=color:#a6e22e>app</span>, <span style=color:#a6e22e>cleanup</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewApp</span>()
+   <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+      <span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Fatal</span>(<span style=color:#a6e22e>err</span>)
+   }
+   <span style=color:#66d9ef>defer</span> <span style=color:#a6e22e>cleanup</span>()
+   <span style=color:#f92672>...</span>
+}
+</code></pre></td></tr></table></div></div><p>请注意<code>defer cleanup()</code>，它确保最终回收所有资源。</p><hr><p><a href=https://itnext.io/mastering-wire-f1226717bbac>Mastering Wire</a></p></div><div class=post-archive><h2>See Also</h2><ul class=listing><li><a href=/post/Go/%E4%BD%BF%E7%94%A8Wire%E5%9C%A8GO%E4%B8%AD%E8%BF%9B%E8%A1%8C%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/>使用Wire在GO中进行依赖注入</a></li><li><a href=/post/Go/Golang%E7%9A%84%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/>Golang的环境变量</a></li><li><a href=/post/OPS/UFW/>UFW</a></li><li><a href=/post/rpc/>RPC</a></li><li><a href=/post/IDE/goland/>Goland</a></li></ul></div><div class="post-meta meta-tags"><ul class=clearfix><li><a href=/tags/wire>wire</a></li></ul></div></article><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return}var b=document,a=b.createElement('script');a.async=!0,a.src='//linux88.disqus.com/embed.js',a.setAttribute('data-timestamp',+new Date),(b.head||b.body).appendChild(a)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><footer id=footer><div>&copy; 2021 <a href=https://blog.linux88.com>Kira's blog By Kira</a></div><br><div><div class=github-badge><a href=https://gohugo.io/ target=_black rel=nofollow><span class=badge-subject>Powered by</span><span class="badge-value bg-blue">Hugo</span></a></div><div class=github-badge><a href=https://www.flysnow.org/ target=_black><span class=badge-subject>Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a></div><div class=github-badge><a href=https://github.com/flysnow-org/maupassant-hugo target=_black><span class=badge-subject>Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a></div></div></footer><script type=text/javascript>window.MathJax={tex2jax:{inlineMath:[['$','$']],processEscapes:!0}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script><a id=rocket href=#top></a><script type=text/javascript src="/js/totop.js?v=0.0.0" async></script><script type=application/javascript>var doNotTrack=!1;doNotTrack||(window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga('create','G-BRM0F3S7ZK','auto'),ga('send','pageview'))</script><script async src=https://www.google-analytics.com/analytics.js></script><script type=text/javascript src=//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js async></script></div><div id=secondary><section class=widget><form id=search action=https://blog.linux88.com/search/ method=get accept-charset=utf-8 target=_blank _lpchecked=1><input type=text name=q maxlength=20 placeholder=Search>
+<input type=hidden name=sitesearch value=https://blog.linux88.com>
+<button type=submit class="submit icon-search"></button></form></section><section class=widget><h3 class=widget-title>最近文章</h3><ul class=widget-list><li><a href=https://blog.linux88.com/post/Go/testing-with-gomock/ title="Testing With Gomock">Testing With Gomock</a></li><li><a href=https://blog.linux88.com/post/Go/embed/ title=Embed>Embed</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%91%BD%E4%BB%A4/ title=Kafka命令>Kafka命令</a></li><li><a href=https://blog.linux88.com/post/OPS/kafka%E5%8F%82%E6%95%B0/ title=Kafka参数>Kafka参数</a></li><li><a href=https://blog.linux88.com/post/Go/Contexts-and-structs/ title="Contexts and structs">Contexts and structs</a></li><li><a href=https://blog.linux88.com/post/OPS/Disable_Transparent_Huge_Pages/ title="Disable Transparent Huge Pages (THP)">Disable Transparent Huge Pages (THP)</a></li><li><a href=https://blog.linux88.com/post/Go/Garbage-Collection-Semantics/ title="Garbage Collection Semantics">Garbage Collection Semantics</a></li><li><a href=https://blog.linux88.com/post/OPS/Google-Doc-%E5%87%A0%E4%B8%AA%E5%B0%8F%E6%8A%80%E5%B7%A7/ title="Google Doc 几个小技巧">Google Doc 几个小技巧</a></li><li><a href=https://blog.linux88.com/post/IDE/Goland%E5%BF%AB%E6%8D%B7%E9%94%AE/ title=Goland快捷键>Goland快捷键</a></li><li><a href=https://blog.linux88.com/post/Go/unsafe/ title=Unsafe>Unsafe</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/categories/>分类</a></h3><ul class=widget-list><li><a href=https://blog.linux88.com/categories/GCP/>GCP (1)</a></li><li><a href=https://blog.linux88.com/categories/Git/>Git (1)</a></li><li><a href=https://blog.linux88.com/categories/Go/>Go (27)</a></li><li><a href=https://blog.linux88.com/categories/HTTP/>HTTP (1)</a></li><li><a href=https://blog.linux88.com/categories/IDE/>IDE (2)</a></li><li><a href=https://blog.linux88.com/categories/OPS/>OPS (11)</a></li><li><a href=https://blog.linux88.com/categories/PHP/>PHP (1)</a></li><li><a href=https://blog.linux88.com/categories/Python/>Python (1)</a></li><li><a href=https://blog.linux88.com/categories/RPC/>RPC (1)</a></li><li><a href=https://blog.linux88.com/categories/kafka/>kafka (2)</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/tags/>标签</a></h3><div class=tagcloud><a href=https://blog.linux88.com/tags/BASH/>BASH</a>
+<a href=https://blog.linux88.com/tags/Docker/>Docker</a>
+<a href=https://blog.linux88.com/tags/GCE/>GCE</a>
+<a href=https://blog.linux88.com/tags/Git/>Git</a>
+<a href=https://blog.linux88.com/tags/Go/>Go</a>
+<a href=https://blog.linux88.com/tags/Goland/>Goland</a>
+<a href=https://blog.linux88.com/tags/Google-Doc/>Google Doc</a>
+<a href=https://blog.linux88.com/tags/HTTP/>HTTP</a>
+<a href=https://blog.linux88.com/tags/JSON/>JSON</a>
+<a href=https://blog.linux88.com/tags/JWT/>JWT</a>
+<a href=https://blog.linux88.com/tags/Kubernetes/>Kubernetes</a>
+<a href=https://blog.linux88.com/tags/Linux/>Linux</a>
+<a href=https://blog.linux88.com/tags/PHP/>PHP</a>
+<a href=https://blog.linux88.com/tags/PicGo-Core/>PicGo-Core</a>
+<a href=https://blog.linux88.com/tags/Python/>Python</a>
+<a href=https://blog.linux88.com/tags/RPC/>RPC</a>
+<a href=https://blog.linux88.com/tags/Remmina/>Remmina</a>
+<a href=https://blog.linux88.com/tags/Rsync/>Rsync</a>
+<a href=https://blog.linux88.com/tags/SVN/>SVN</a>
+<a href=https://blog.linux88.com/tags/Typora/>Typora</a>
+<a href=https://blog.linux88.com/tags/UFW/>UFW</a>
+<a href=https://blog.linux88.com/tags/Viper/>Viper</a>
+<a href=https://blog.linux88.com/tags/dlv/>dlv</a>
+<a href=https://blog.linux88.com/tags/gRPC/>gRPC</a>
+<a href=https://blog.linux88.com/tags/kafka/>kafka</a>
+<a href=https://blog.linux88.com/tags/wire/>wire</a>
+<a href=https://blog.linux88.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/>设计模式</a></div></section><section class=widget><h3 class=widget-title>其它</h3><ul class=widget-list><li><a href=https://blog.linux88.com/index.xml>文章 RSS</a></li></ul></section></div></div></div></div></body></html>
