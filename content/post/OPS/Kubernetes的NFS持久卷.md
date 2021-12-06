@@ -1,13 +1,10 @@
 ---
-title: "Kubernetes NFS的持久卷"
-date: 2021-12-12T15:20:29+08:00
+title: "Kubernetes的NFS持久卷"
+date: 2021-12-06T10:34:43+08:00
 draft: false
-tags: ["Kubernetes"]
-categories: ["OPS"]
-
+tags: [""]
+categories: ["Kubernetes"]
 ---
-
-
 
 ## 一、安装NFS服务器
 
@@ -18,7 +15,7 @@ categories: ["OPS"]
 dnf install nfs-utils
 
 $ sudo cat > /etc/exports << EOF
-/data/k8s_data/		192.168.0.100/24(rw,sync,no_root_squash,no_all_squash,no_acl)
+/data/k8s_data/   192.168.0.100/24(rw,sync,no_root_squash,no_all_squash,no_acl)
 EOF
 
 # 启动nfs
@@ -34,7 +31,7 @@ Export list for 127.0.0.1:
 
 
 
-### 二、各个节点需要安装nfs客户端
+## 二、各个节点需要安装nfs客户端
 
 ```bash
 # nfs clinet for ubuntu
@@ -124,4 +121,3 @@ echo 111 >> /usr/share/nginx/html/1.txt
 $ kubectl exec -it nginx-deployment-85694dcf79-nq4sn -- cat /usr/share/nginx/html/1.txt
 111
 ```
-

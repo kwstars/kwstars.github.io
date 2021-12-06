@@ -1,12 +1,10 @@
 ---
 title: "K3S安装"
-date: 2021-12-12T09:20:29+08:00
+date: 2021-12-06T10:32:06+08:00
 draft: false
-tags: ["Kubernetes"]
-categories: ["OPS"]
+tags: [""]
+categories: ["K3S"]
 ---
-
-
 
 ## 一、安装multipass
 
