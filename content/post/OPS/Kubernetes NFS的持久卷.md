@@ -1,7 +1,7 @@
 ---
-title: "Kubernetes"
+title: "Kubernetes NFS的持久卷"
 date: 2021-12-12T15:20:29+08:00
-draft: true
+draft: false
 tags: ["Kubernetes"]
 categories: ["OPS"]
 

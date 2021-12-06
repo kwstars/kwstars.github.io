@@ -1,10 +1,9 @@
 ---
-title: "Kubernetes"
+title: "K3S安装"
 date: 2021-12-12T09:20:29+08:00
 draft: false
 tags: ["Kubernetes"]
 categories: ["OPS"]
-
 ---
 
 
@@ -54,7 +53,7 @@ PS C:\> multipass launch --bridged --name k3s-server lts
 kubeconfig文件会写入**/etc/rancher/k3s/k3s.yaml**
 
 ```bash
-$ curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--node-ip=192.168.0.17 --flannel-iface=eth1" sh -
+$ curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--node-ip=192.168.0.17 --flannel-iface=eth1 --disable traefik" sh -
 [INFO]  Finding release for channel stable
 [INFO]  Using v1.21.5+k3s2 as release
 [INFO]  Downloading hash https://github.com/k3s-io/k3s/releases/download/v1.21.5+k3s2/sha256sum-amd64.txt
