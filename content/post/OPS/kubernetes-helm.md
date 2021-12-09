@@ -1,5 +1,5 @@
 ---
-title: "通过helm安装chart"
+title: "helm"
 date: 2021-12-06T20:10:39+08:00
 draft: false
 tags: [""]
@@ -7,8 +7,6 @@ categories: ["Kubernetes"]
 ---
 
 
-
-## Helm
 
 ### Elasticsearch
 
@@ -56,10 +54,71 @@ kubectl get secret  prometheus-grafana -o jsonpath="{.data.admin-password}" | ba
 
 
 
-### traefik
+### Traefik
 
 ```bash
-helm install traefik traefik/traefik
+helm upgrade --install traefik --namespace=kube-system traefik/traefik -f ./values-prod.yaml
+```
+
+
+
+创建一个用于 Dashboard 访问的 IngressRoute 资源清单
+
+```yaml
+cat <<EOF | kubectl apply -f -
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard
+  namespace: kube-system
+spec:
+  entryPoints:
+  - web
+  routes:
+  - match: Host(`traefik.linux88.com`)  # 指定域名
+    kind: Rule
+    services:
+    - name: api@internal
+      kind: TraefikService  # 引用另外的 Traefik Service
+EOF
+```
+
+
+
+创建kibana、prometheus相关的资源清单
+
+```yaml
+cat <<EOF | kubectl apply -f -
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: simpleingressroute
+  namespace: default
+spec:
+  entryPoints:
+    - web
+  routes:
+  - match: Host(`kibana.linux88.com`)
+    kind: Rule
+    services:
+    - name: kibana-kibana
+      port: 5601
+  - match: Host(`prom.linux88.com`)
+    kind: Rule
+    services:
+    - name: prometheus-kube-prometheus-prometheus
+      port: 9090
+  - match: Host(`grafana.linux88.com`)
+    kind: Rule
+    services:
+    - name: prometheus-grafana
+      port: 80
+  - match: Host(`alert.linux88.com`)
+    kind: Rule
+    services:
+    - name: prometheus-kube-prometheus-alertmanager
+      port: 9093
+ EOF
 ```
 
 
@@ -71,3 +130,7 @@ helm install traefik traefik/traefik
 [Fluent Helm Charts](https://github.com/fluent/helm-charts)
 
 [Fails to send data to ElasticSearch](https://github.com/fluent/fluent-bit/issues/3052)
+
+[Traefik](https://www.qikqiak.com/k8strain2/network/ingress/traefik/)
+
+[Install Prometheus and Grafana in your Kubernetes cluster](https://howchoo.com/kubernetes/install-prometheus-and-grafana-in-your-kubernetes-cluster)
