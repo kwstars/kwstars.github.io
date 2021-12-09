@@ -6,6 +6,27 @@ tags: [""]
 categories: ["Kubernetes"]
 ---
 
+### helm
+
+```bash
+# 添加一个chart库
+helm repo add elastic https://helm.elastic.co
+
+# 从chart存储库更新信息
+helm repo update 
+
+# 查找chart
+helm search repo prometheus
+
+# 下载chart
+helm pull elastic/elasticsearch
+
+# 查看历史的发布版本
+helm history traefik
+```
+
+
+
 
 
 ### Elasticsearch
@@ -16,7 +37,7 @@ helm repo add elastic https://helm.elastic.co
 # 从存储库下载 chart
 helm pull elastic/elasticsearch
 
-helm install --namespace monitoring elasticsearch elastic/elasticsearch -f ./values.yaml --set replicas=1 --set minimumMasterNodes=1
+helm upgrade --install --namespace monitoring elasticsearch elastic/elasticsearch -f ./values.yaml --set replicas=1 --set minimumMasterNodes=1
 ```
 
 
@@ -24,7 +45,7 @@ helm install --namespace monitoring elasticsearch elastic/elasticsearch -f ./val
 ### Kibana
 
 ```bash
-helm install --namespace monitoring kibana elastic/kibana 
+helm upgrade --install --namespace monitoring kibana elastic/kibana 
 ```
 
 
@@ -38,7 +59,7 @@ helm show values fluent/fluent-bit
 
 wget https://raw.githubusercontent.com/fluent/helm-charts/main/charts/fluent-bit/values.yaml
 
-helm install --namespace monitoring fluent-bit fluent/fluent-bit
+helm upgrade --install --namespace monitoring fluent-bit fluent/fluent-bit
 ```
 
 
@@ -46,10 +67,10 @@ helm install --namespace monitoring fluent-bit fluent/fluent-bit
 ### kube-prometheus-stack
 
 ```bash
-helm install kube-prometheus-stack --namespace monitoring prometheus-community/kube-prometheus-stack
+helm upgrade --install --namespace monitoring kube-prometheus-stack prometheus-community/kube-prometheus-stack
 
 # 查看grafana密码
-kubectl get secret  prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+kubectl get secret -n monitoring kube-prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
 
 
@@ -92,8 +113,8 @@ cat <<EOF | kubectl apply -f -
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
-  name: simpleingressroute
-  namespace: default
+  name: monitoringressroute
+  namespace: monitoring
 spec:
   entryPoints:
     - web
@@ -106,17 +127,17 @@ spec:
   - match: Host(`prom.linux88.com`)
     kind: Rule
     services:
-    - name: prometheus-kube-prometheus-prometheus
+    - name: kube-prometheus-stack-prometheus
       port: 9090
   - match: Host(`grafana.linux88.com`)
     kind: Rule
     services:
-    - name: prometheus-grafana
+    - name: kube-prometheus-stack-grafana
       port: 80
   - match: Host(`alert.linux88.com`)
     kind: Rule
     services:
-    - name: prometheus-kube-prometheus-alertmanager
+    - name: kube-prometheus-stack-alertmanager
       port: 9093
  EOF
 ```
@@ -134,3 +155,5 @@ spec:
 [Traefik](https://www.qikqiak.com/k8strain2/network/ingress/traefik/)
 
 [Install Prometheus and Grafana in your Kubernetes cluster](https://howchoo.com/kubernetes/install-prometheus-and-grafana-in-your-kubernetes-cluster)
+
+[Capture Traefik Metrics for Apps on Kubernetes with Prometheus](https://traefik.io/blog/capture-traefik-metrics-for-apps-on-kubernetes-with-prometheus/)
