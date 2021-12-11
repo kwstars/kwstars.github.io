@@ -1,0 +1,264 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=referrer content="no-referrer-when-downgrade"><title>Safer Enums in Go | Kira's blog</title><meta property="og:title" content="Safer Enums in Go - Kira's blog"><meta property="og:type" content="article"><meta property="article:published_time" content="2021-12-11T19:50:31+08:00"><meta property="article:modified_time" content="2021-12-11T19:50:31+08:00"><meta name=Keywords content="golang,go语言,go语言笔记,博客,python"><meta name=description content="Safer Enums in Go"><meta name=author content="Kira"><meta property="og:url" content="https://linux88.com/post/Go/safer-enums-in-go/"><link rel="shortcut icon" href=/favicon.ico type=image/x-icon><link rel=stylesheet href=/css/normalize.css><link rel=stylesheet href=/css/style.css><script type=text/javascript src=//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js></script></head><body><header id=header class=clearfix><div class=container><div class=col-group><div class=site-name><a id=logo href=https://linux88.com>Kira's blog</a><p class=description>随笔</p></div><div><nav id=nav-menu class=clearfix><a class=current href=https://linux88.com>首页</a>
+<a href=https://linux88.com/archives/ title=归档>归档</a></nav></div></div></div></header><div id=body><div class=container><div class=col-group><div class=col-8 id=main><div class=res-cons><style type=text/css>.post-toc{position:fixed;width:200px;margin-left:-260px;padding:5px 10px;font-family:Athelas,STHeiti,Microsoft Yahei,serif;font-size:12px;border:1px solid rgba(0,0,0,7%);border-radius:5px;background-color:rgba(255,255,255,.98);background-clip:padding-box;-webkit-box-shadow:1px 1px 2px rgba(0,0,0,.125);box-shadow:1px 1px 2px rgba(0,0,0,.125);word-wrap:break-word;white-space:nowrap;-webkit-box-sizing:border-box;box-sizing:border-box;z-index:999;cursor:pointer;max-height:70%;overflow-y:auto;overflow-x:hidden}.post-toc .post-toc-title{width:100%;margin:0 auto;font-size:20px;font-weight:400;text-transform:uppercase;text-align:center}.post-toc .post-toc-content{font-size:15px}.post-toc .post-toc-content>nav>ul{margin:10px 0}.post-toc .post-toc-content ul{padding-left:5px;list-style:square;margin:.5em;line-height:1.8em}@media print,screen and (max-width:1057px){.post-toc{display:none}}</style><div class=post-toc style=position:absolute;top:188px><h2 class=post-toc-title>文章目录</h2><div class=post-toc-content><nav id=TableOfContents><ul><li><a href=#iota>iota</a></li><li><a href=#sentinel-values>Sentinel values</a></li><li><a href=#slugs>Slugs</a></li><li><a href=#struct-based-enums>Struct-based Enums</a></li></ul></nav></div></div><script type=text/javascript>$(document).ready(function(){var a=$(".post-toc"),b,c,d;a.length&&(b=$("#main").offset().left,b<220&&a.css({width:b-10,"margin-left":0-b}),c=a.offset().top-20,d={start:{position:"absolute",top:c},process:{position:"fixed",top:20}},$(window).scroll(function(){var b=$(window).scrollTop();b<c?a.css(d.start):a.css(d.process)}))})</script><article class=post><header><h1 class=post-title>Safer Enums in Go</h1></header><date class="post-meta meta-date">2021年12月11日</date><div class=post-meta><span>|</span>
+<span class=meta-category><a href=/categories/Go>Go</a></span></div><div class=post-meta><span id=busuanzi_container_page_pv>|<span id=busuanzi_value_page_pv></span><span>
+阅读</span></span></div><div class=post-content><p>此文为 <a href=https://threedots.tech/post/safer-enums-in-go/>Safer Enums in Go</a> 译文</p><p>枚举是 Web 应用程序的重要组成部分。Go 并没有开箱即用地支持它们，但有一些方法可以模拟它们。</p><p>许多显而易见的解决方案远非理想。以下是我们使用的一些想法，它们通过设计使枚举更安全。</p><h2 id=iota>iota</h2><p>Go 中可以使用 <code>iota</code> 枚举。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>const</span> (
+	<span style=color:#a6e22e>Guest</span> = <span style=color:#66d9ef>iota</span>
+	<span style=color:#a6e22e>Member</span>
+	<span style=color:#a6e22e>Moderator</span>
+	<span style=color:#a6e22e>Admin</span>
+)
+</code></pre></td></tr></table></div></div><p><code>iota</code> 适用于由 2 的幂表示的标志。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>const</span> (
+	<span style=color:#a6e22e>Guest</span> = <span style=color:#ae81ff>1</span> <span style=color:#f92672>&lt;&lt;</span> <span style=color:#66d9ef>iota</span> <span style=color:#75715e>// 1
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>Member</span>            <span style=color:#75715e>// 2
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>Moderator</span>         <span style=color:#75715e>// 4
+</span><span style=color:#75715e></span>	<span style=color:#a6e22e>Admin</span>             <span style=color:#75715e>// 8
+</span><span style=color:#75715e></span>)
+
+<span style=color:#75715e>// ...
+</span><span style=color:#75715e></span>
+<span style=color:#a6e22e>user</span>.<span style=color:#a6e22e>Roles</span> = <span style=color:#a6e22e>Member</span> | <span style=color:#a6e22e>Moderator</span> <span style=color:#75715e>// 6
+</span></code></pre></td></tr></table></div></div><p>位掩码很有效，有时也很有帮助。但是，它与大多数 Web 应用程序中的枚举不同。通常，您可以将所有角色存储在列表中。它也将更具可读性。</p><p>iota的主要问题是它在整数上工作，没有防止传递无效的值。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>CreateUser</span>(<span style=color:#a6e22e>role</span> <span style=color:#66d9ef>int</span>) <span style=color:#66d9ef>error</span> {
+	<span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Creating user with role&#34;</span>, <span style=color:#a6e22e>role</span>)
+	<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+	<span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>CreateUser</span>(<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>err</span>)
+	}
+	
+	<span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>CreateUser</span>(<span style=color:#ae81ff>42</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>err</span>)
+	}
+}
+</code></pre></td></tr></table></div></div><p>即使没有相应的角色，CreateUser 也会很乐意接受 -1 或 42。</p><p>当然，我们可以在函数中验证这一点。但是我们使用具有强类型的语言，所以让我们利用它。在我们的应用程序上下文中，用户角色不仅仅是一个模糊的数字。</p><blockquote><p>反模式：整数枚举</p><p>不要使用基于 iota 的整数来表示不是连续数字或标志的枚举。</p></blockquote><p>我们可以引入一种类型来改进解决方案。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">8
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Role</span> <span style=color:#66d9ef>uint</span>
+
+<span style=color:#66d9ef>const</span> (
+	<span style=color:#a6e22e>Guest</span> <span style=color:#a6e22e>Role</span> = <span style=color:#66d9ef>iota</span>
+	<span style=color:#a6e22e>Member</span>
+	<span style=color:#a6e22e>Moderator</span>
+	<span style=color:#a6e22e>Admin</span>
+)
+</code></pre></td></tr></table></div></div><p>它看起来更好，但仍然可以传递任意整数来代替 Role。 Go 编译器在这里没有帮助我们。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>CreateUser</span>(<span style=color:#a6e22e>role</span> <span style=color:#a6e22e>Role</span>) <span style=color:#66d9ef>error</span> {
+	<span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Creating user with role&#34;</span>, <span style=color:#a6e22e>role</span>)
+	<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span> () {
+	<span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>CreateUser</span>(<span style=color:#ae81ff>0</span>)
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+		<span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>err</span>)
+	}
+	
+    <span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>CreateUser</span>(<span style=color:#a6e22e>role</span>.<span style=color:#a6e22e>Role</span>(<span style=color:#ae81ff>42</span>))
+    <span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>err</span>)
+    }
+}
+</code></pre></td></tr></table></div></div><p>该类型是对裸整数的改进，但它仍然是一种错觉。它不给我们任何保证该角色是有效的。</p><h2 id=sentinel-values>Sentinel values</h2><p>因为 iota 从 0 开始，Guest 也是 Role 的零值。这使得很难检测角色是否为空或有人传递了 Guest 值。</p><p>您可以通过从 1 开始计数来避免这种情况。更好的是，保留一个可以比较且不会误认为实际角色的明确标记值。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">16
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">17
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>const</span> (
+	<span style=color:#a6e22e>Unknown</span> <span style=color:#a6e22e>Role</span> = <span style=color:#66d9ef>iota</span>
+	<span style=color:#a6e22e>Guest</span>
+	<span style=color:#a6e22e>Member</span>
+	<span style=color:#a6e22e>Moderator</span>
+	<span style=color:#a6e22e>Admin</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>CreateUser</span>(<span style=color:#a6e22e>r</span> <span style=color:#a6e22e>role</span>.<span style=color:#a6e22e>Role</span>) <span style=color:#66d9ef>error</span> {
+	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>r</span> <span style=color:#f92672>==</span> <span style=color:#a6e22e>role</span>.<span style=color:#a6e22e>Unknown</span> {
+		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>errors</span>.<span style=color:#a6e22e>New</span>(<span style=color:#e6db74>&#34;no role provided&#34;</span>)
+	}
+	
+	<span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Creating user with role&#34;</span>, <span style=color:#a6e22e>r</span>)
+	
+	<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>
+}
+</code></pre></td></tr></table></div></div><blockquote><p>最佳实践：</p><p>为枚举的零值保留一个显式变量。</p></blockquote><h2 id=slugs>Slugs</h2><p>枚举似乎是关于连续整数，但它很少是有效的表示。在 Web 应用程序中，我们使用枚举来对某种类型的可能变体进行分组。它们不能很好地映射到数字。</p><p>当您在 API 响应、数据库表或日志中看到 3 时，很难理解上下文。您必须检查来源或过时的文档以了解其内容。</p><p>在大多数情况下，字符串 slug 比整数更有意义。无论你在哪里看到它，主持人都很明显。由于 iota 无论如何都无济于事，我们也可以使用人类可读的字符串。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">9
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Role</span> <span style=color:#66d9ef>string</span>
+
+<span style=color:#66d9ef>const</span> (
+	<span style=color:#a6e22e>Unknown</span>   <span style=color:#a6e22e>Role</span> = <span style=color:#e6db74>&#34;&#34;</span>
+	<span style=color:#a6e22e>Guest</span>     <span style=color:#a6e22e>Role</span> = <span style=color:#e6db74>&#34;guest&#34;</span>
+	<span style=color:#a6e22e>Member</span>    <span style=color:#a6e22e>Role</span> = <span style=color:#e6db74>&#34;member&#34;</span>
+	<span style=color:#a6e22e>Moderator</span> <span style=color:#a6e22e>Role</span> = <span style=color:#e6db74>&#34;moderator&#34;</span>
+	<span style=color:#a6e22e>Admin</span>     <span style=color:#a6e22e>Role</span> = <span style=color:#e6db74>&#34;admin&#34;</span>
+)
+</code></pre></td></tr></table></div></div><blockquote><p>最佳实践：Slugs</p><p>使用字符串值而不是整数。 避免使用空格以便于解析和记录。使用camelCase、snake_case 或kebab-case。</p></blockquote><p>Slug 对错误代码特别有用。与 {&ldquo;error&rdquo;: 4102} 相比，像 {&ldquo;error&rdquo;: &ldquo;user-not-found&rdquo;} 这样的错误响应是显而易见的。</p><p>但是，该类型仍然可以包含任意字符串。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">4
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>CreateUser</span>(<span style=color:#e6db74>&#34;super-admin&#34;</span>)
+<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+	<span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>err</span>)
+}
+</code></pre></td></tr></table></div></div><h2 id=struct-based-enums>Struct-based Enums</h2><p>最后的迭代使用结构。它让我们可以使用设计安全的代码。我们不需要检查传递的值是否正确。</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">15
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>Role</span> <span style=color:#66d9ef>struct</span> {
+	<span style=color:#a6e22e>slug</span> <span style=color:#66d9ef>string</span>
+}
+
+<span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>r</span> <span style=color:#a6e22e>Role</span>) <span style=color:#a6e22e>String</span>() <span style=color:#66d9ef>string</span> {
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>r</span>.<span style=color:#a6e22e>slug</span>
+}
+
+<span style=color:#66d9ef>var</span> (
+	<span style=color:#a6e22e>Unknown</span>   = <span style=color:#a6e22e>Role</span>{<span style=color:#e6db74>&#34;&#34;</span>}
+	<span style=color:#a6e22e>Guest</span>     = <span style=color:#a6e22e>Role</span>{<span style=color:#e6db74>&#34;guest&#34;</span>}
+	<span style=color:#a6e22e>Member</span>    = <span style=color:#a6e22e>Role</span>{<span style=color:#e6db74>&#34;member&#34;</span>}
+	<span style=color:#a6e22e>Moderator</span> = <span style=color:#a6e22e>Role</span>{<span style=color:#e6db74>&#34;moderator&#34;</span>}
+	<span style=color:#a6e22e>Admin</span>     = <span style=color:#a6e22e>Role</span>{<span style=color:#e6db74>&#34;admin&#34;</span>}
+)
+</code></pre></td></tr></table></div></div><p>由于 slug 字段未导出，因此无法从包外部填充它。您可以构建的唯一无效角色是空角色：Role{}。</p><p>我们可以添加一个构造函数来创建一个基于 slug 的有效角色：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 1
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 2
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 3
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 4
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 5
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 6
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 7
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 8
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f"> 9
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">10
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">11
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">12
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">13
+</span><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">14
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>FromString</span>(<span style=color:#a6e22e>s</span> <span style=color:#66d9ef>string</span>) (<span style=color:#a6e22e>Role</span>, <span style=color:#66d9ef>error</span>) {
+	<span style=color:#66d9ef>switch</span> <span style=color:#a6e22e>s</span> {
+	<span style=color:#66d9ef>case</span> <span style=color:#a6e22e>Guest</span>.<span style=color:#a6e22e>slug</span>:
+		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>Guest</span>, <span style=color:#66d9ef>nil</span>
+	<span style=color:#66d9ef>case</span> <span style=color:#a6e22e>Member</span>.<span style=color:#a6e22e>slug</span>:
+		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>Member</span>, <span style=color:#66d9ef>nil</span>
+	<span style=color:#66d9ef>case</span> <span style=color:#a6e22e>Moderator</span>.<span style=color:#a6e22e>slug</span>:
+		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>Moderator</span>, <span style=color:#66d9ef>nil</span>
+	<span style=color:#66d9ef>case</span> <span style=color:#a6e22e>Admin</span>.<span style=color:#a6e22e>slug</span>:
+		<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>Admin</span>, <span style=color:#66d9ef>nil</span>
+	}
+
+	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>Unknown</span>, <span style=color:#a6e22e>errors</span>.<span style=color:#a6e22e>New</span>(<span style=color:#e6db74>&#34;unknown role: &#34;</span> <span style=color:#f92672>+</span> <span style=color:#a6e22e>s</span>)
+}
+</code></pre></td></tr></table></div></div><blockquote><p>最佳实践：</p><p>基于结构的枚举 将枚举封装在结构中以获得额外的编译时安全性</p></blockquote><p>这种方法在你处理业务逻辑时是完美的。保持结构在内存中始终处于有效状态，使你的代码更容易操作和理解。检查枚举类型是否为空就足够了，而且你可以确定它是一个正确的值。</p><p>这种方法存在一个潜在问题。 Go 中的结构不能是常量，因此可以像这样覆盖全局变量：</p><div class=highlight><div style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><table style=border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block><tr><td style=vertical-align:top;padding:0;margin:0;border:0><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code><span style="margin-right:.4em;padding:0 .4em;color:#7f7f7f">1
+</span></code></pre></td><td style=vertical-align:top;padding:0;margin:0;border:0;width:100%><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#a6e22e>roles</span>.<span style=color:#a6e22e>Guest</span> = <span style=color:#a6e22e>role</span>.<span style=color:#a6e22e>Admin</span>
+</code></pre></td></tr></table></div></div><p>但是，没有合理的理由这样做。你更有可能意外地传递一个无效的整数。</p><p>另一个缺点是您必须在两个地方进行更新：枚举列表和构造函数。然而，它很容易被发现，即使你一开始错过了它。</p></div><div class=post-archive><h2>See Also</h2><ul class=listing><li><a href=/post/OPS/kubernetes-helm/>helm</a></li><li><a href=/post/OPS/kubernetes-dashboard/>Kubernetes Dashboard</a></li><li><a href=/post/OPS/Kubernetes%E7%9A%84NFS%E6%8C%81%E4%B9%85%E5%8D%B7/>Kubernetes的NFS持久卷</a></li><li><a href=/post/OPS/k3s%E5%AE%89%E8%A3%85/>K3S安装</a></li><li><a href=/post/Go/embed/>Embed</a></li></ul></div><div class="post-meta meta-tags"><ul class=clearfix><li><a href=/tags/></a></li></ul></div></article><div id=disqus_thread></div><script type=application/javascript>var disqus_config=function(){};(function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return}var b=document,a=b.createElement('script');a.async=!0,a.src='//linux88.disqus.com/embed.js',a.setAttribute('data-timestamp',+new Date),(b.head||b.body).appendChild(a)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></div><footer id=footer><div>&copy; 2021 <a href=https://linux88.com>Kira's blog By Kira</a></div><br><div><div class=github-badge><a href=https://gohugo.io/ target=_black rel=nofollow><span class=badge-subject>Powered by</span><span class="badge-value bg-blue">Hugo</span></a></div><div class=github-badge><a href=https://www.flysnow.org/ target=_black><span class=badge-subject>Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a></div><div class=github-badge><a href=https://github.com/flysnow-org/maupassant-hugo target=_black><span class=badge-subject>Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a></div></div></footer><script type=text/javascript>window.MathJax={tex2jax:{inlineMath:[['$','$']],processEscapes:!0}}</script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML" async></script><a id=rocket href=#top></a><script type=text/javascript src="/js/totop.js?v=0.0.0" async></script><script type=application/javascript>var doNotTrack=!1;doNotTrack||(window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)},ga.l=+new Date,ga('create','G-BRM0F3S7ZK','auto'),ga('send','pageview'))</script><script async src=https://www.google-analytics.com/analytics.js></script><script type=text/javascript src=//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js async></script></div><div id=secondary><section class=widget><form id=search action=https://linux88.com/search/ method=get accept-charset=utf-8 target=_blank _lpchecked=1><input type=text name=q maxlength=20 placeholder=Search>
+<input type=hidden name=sitesearch value=https://linux88.com>
+<button type=submit class="submit icon-search"></button></form></section><section class=widget><h3 class=widget-title>最近文章</h3><ul class=widget-list><li><a href=https://linux88.com/post/Go/safer-enums-in-go/ title="Safer Enums in Go">Safer Enums in Go</a></li><li><a href=https://linux88.com/post/OPS/kubernetes-helm/ title=helm>helm</a></li><li><a href=https://linux88.com/post/OPS/kubernetes-dashboard/ title="Kubernetes Dashboard">Kubernetes Dashboard</a></li><li><a href=https://linux88.com/post/OPS/Kubernetes%E7%9A%84NFS%E6%8C%81%E4%B9%85%E5%8D%B7/ title=Kubernetes的NFS持久卷>Kubernetes的NFS持久卷</a></li><li><a href=https://linux88.com/post/OPS/k3s%E5%AE%89%E8%A3%85/ title=K3S安装>K3S安装</a></li><li><a href=https://linux88.com/post/Go/testing-with-gomock/ title="Testing With Gomock">Testing With Gomock</a></li><li><a href=https://linux88.com/post/Go/embed/ title=Embed>Embed</a></li><li><a href=https://linux88.com/post/OPS/kafka%E5%91%BD%E4%BB%A4/ title=Kafka命令>Kafka命令</a></li><li><a href=https://linux88.com/post/OPS/kafka%E5%8F%82%E6%95%B0/ title=Kafka参数>Kafka参数</a></li><li><a href=https://linux88.com/post/Go/Contexts-and-structs/ title="Contexts and structs">Contexts and structs</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/categories/>分类</a></h3><ul class=widget-list><li><a href=https://linux88.com/categories/GCP/>GCP (1)</a></li><li><a href=https://linux88.com/categories/Git/>Git (1)</a></li><li><a href=https://linux88.com/categories/Go/>Go (28)</a></li><li><a href=https://linux88.com/categories/HTTP/>HTTP (1)</a></li><li><a href=https://linux88.com/categories/IDE/>IDE (2)</a></li><li><a href=https://linux88.com/categories/K3S/>K3S (1)</a></li><li><a href=https://linux88.com/categories/Kubernetes/>Kubernetes (3)</a></li><li><a href=https://linux88.com/categories/OPS/>OPS (11)</a></li><li><a href=https://linux88.com/categories/PHP/>PHP (1)</a></li><li><a href=https://linux88.com/categories/Python/>Python (1)</a></li><li><a href=https://linux88.com/categories/RPC/>RPC (1)</a></li><li><a href=https://linux88.com/categories/kafka/>kafka (2)</a></li></ul></section><section class=widget><h3 class=widget-title><a href=/tags/>标签</a></h3><div class=tagcloud><a href=https://linux88.com/tags/BASH/>BASH</a>
+<a href=https://linux88.com/tags/Docker/>Docker</a>
+<a href=https://linux88.com/tags/GCE/>GCE</a>
+<a href=https://linux88.com/tags/Git/>Git</a>
+<a href=https://linux88.com/tags/Go/>Go</a>
+<a href=https://linux88.com/tags/Goland/>Goland</a>
+<a href=https://linux88.com/tags/Google-Doc/>Google Doc</a>
+<a href=https://linux88.com/tags/HTTP/>HTTP</a>
+<a href=https://linux88.com/tags/JSON/>JSON</a>
+<a href=https://linux88.com/tags/JWT/>JWT</a>
+<a href=https://linux88.com/tags/Kubernetes/>Kubernetes</a>
+<a href=https://linux88.com/tags/Linux/>Linux</a>
+<a href=https://linux88.com/tags/PHP/>PHP</a>
+<a href=https://linux88.com/tags/PicGo-Core/>PicGo-Core</a>
+<a href=https://linux88.com/tags/Python/>Python</a>
+<a href=https://linux88.com/tags/RPC/>RPC</a>
+<a href=https://linux88.com/tags/Remmina/>Remmina</a>
+<a href=https://linux88.com/tags/Rsync/>Rsync</a>
+<a href=https://linux88.com/tags/SVN/>SVN</a>
+<a href=https://linux88.com/tags/Typora/>Typora</a>
+<a href=https://linux88.com/tags/UFW/>UFW</a>
+<a href=https://linux88.com/tags/Viper/>Viper</a>
+<a href=https://linux88.com/tags/dlv/>dlv</a>
+<a href=https://linux88.com/tags/gRPC/>gRPC</a>
+<a href=https://linux88.com/tags/kafka/>kafka</a>
+<a href=https://linux88.com/tags/wire/>wire</a>
+<a href=https://linux88.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/>设计模式</a></div></section><section class=widget><h3 class=widget-title>其它</h3><ul class=widget-list><li><a href=https://linux88.com/index.xml>文章 RSS</a></li></ul></section></div></div></div></div></body></html>
