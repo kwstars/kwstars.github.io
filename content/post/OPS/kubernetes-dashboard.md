@@ -15,7 +15,7 @@ categories: ["Kubernetes"]
 ```bash
 GITHUB_URL=https://github.com/kubernetes/dashboard/releases
 VERSION_KUBE_DASHBOARD=$(curl -w '%{url_effective}' -I -L -s -S ${GITHUB_URL}/latest -o /dev/null | sed -e 's|.*/||')
-kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/${VERSION_KUBE_DASHBOARD}/aio/deploy/recommended.yaml
+kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/$VERSION_KUBE_DASHBOARD/aio/deploy/recommended.yaml
 ```
 
 
@@ -25,6 +25,7 @@ kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/${VERSI
 创建以下资源清单文件  **dashboard.yaml**
 
 ```yaml
+cat <<EOF | kubectl apply -f -
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -44,14 +45,7 @@ subjects:
 - kind: ServiceAccount
   name: admin-user
   namespace: kubernetes-dashboard 
-```
-
-
-
-部署管理员用户配置
-
-```bash
-kubectl create -f dashboard.admin-user.yml -f dashboard.admin-user-role.yml
+EOF
 ```
 
 
@@ -70,7 +64,7 @@ kubectl -n kubernetes-dashboard describe secret admin-user-token | grep '^token'
 kubectl delete ns kubernetes-dashboard
 GITHUB_URL=https://github.com/kubernetes/dashboard/releases
 VERSION_KUBE_DASHBOARD=$(curl -w '%{url_effective}' -I -L -s -S ${GITHUB_URL}/latest -o /dev/null | sed -e 's|.*/||')
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/${VERSION_KUBE_DASHBOARD}/aio/deploy/recommended.yaml -f dashboard.yml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/$VERSION_KUBE_DASHBOARD/aio/deploy/recommended.yaml -f dashboard.yml
 ```
 
 
