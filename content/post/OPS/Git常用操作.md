@@ -100,3 +100,22 @@ git push origin --force --all
 git push origin --force --tags
 ```
 
+
+
+### submodule
+
+[How To Add and Update Git Submodules](https://devconnected.com/how-to-add-and-update-git-submodules/)
+
+```bash
+# 添加submodule
+git submodule add <remote_url> <destination_folder>
+git commit -m "Added the submodule to the project."
+git push
+
+# push submodule
+git submodule update --init --recursive
+
+# 更新 submodule
+git submodule update --remote --merge
+```
+

@@ -171,3 +171,17 @@ onedrive
 # 错误查看日志
 journalctl --user-unit=onedrive -f
 ```
+
+
+
+15. ### TigerVNC
+
+[How to Install TigerVNC Server on Ubuntu 20.04](https://atetux.com/how-to-install-tigervnc-server-on-ubuntu-20-04)
+
+```bash
+sudo apt install tigervnc-standalone-server -y
+sudo adduser atetux
+vncpasswd
+vncserver -localhost no
+```
+
