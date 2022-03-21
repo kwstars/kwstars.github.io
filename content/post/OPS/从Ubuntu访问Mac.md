@@ -1,27 +1,42 @@
 ---
-title: "查找Remmina的密码"
-date: 2020-11-10T15:20:29+08:00
+title: "从Ubuntu访问Mac"
+date: 2022-03-10T15:20:29+08:00
 draft: false
-tags: ["Remmina"]
-categories: ["OPS"]
+tags: ["Ubuntu"]
+categories: ["Ubuntu"]
 ---
 
 
 
-[Seshorse](https://wiki.archlinux.org/index.php/GNOME/Keyring) 可以管理 [GNOME Keyring](https://wiki.gnome.org/Projects/GnomeKeyring)。
+## 一、Mac设置
+
+1. Mac上开启远程管理
+
+ ![image-20220321112254469](https://i.imgur.com/h0PL3ob.png)
+
+2. 设置一个VNC的远程访问密码
+
+ ![image-20220321112333694](https://i.imgur.com/8I6FKlO.png)****
+
+
+
+## 二、Ubuntu设置
+
+1. 安装vnc软件
 
 ```bash
-# 安装
-sudo apt-get install seahorse
-
-# 运行
-seahorse 
+sudo apt install tigervnc*
 ```
 
-![image-20201110152251187](https://i.imgur.com/M0U67Tl.png)
+
+
+2. 开启vnc
+
+``` 
+vncviewer
+```
 
 
 
----
+3. 退出全屏 按 F8
 
-[查找远程管理工具 Remmina 密码的保存位置](https://blog.upall.cn/1915.html)
